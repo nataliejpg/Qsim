@@ -56,7 +56,6 @@ def u_3(t, x, amp=1, detuning=0):
     t = np.array(t)
     if t.shape == ():
         t = t.reshape(1,)
-    print(np.array(x).shape)
     x = np.rollaxis(np.array(x), 1)
     a0 = (np.cos(alpha * t / 2) - 1j *
           (omega_d / alpha) * np.sin(alpha * t / 2))

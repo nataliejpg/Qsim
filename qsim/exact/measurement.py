@@ -21,12 +21,12 @@ def projection(state_array, axis='Z'):
     axis
 
     Args:
-        state_array: state vectors array with shape (m, 2**n) where
+        state_array: state vectors array with shape (m, 2**qubit_num) where
             m is the number of states and n is the number of qubits
         axis for the qubits to be projected onto 'X', 'Y' or 'Z' (default Z)
 
     Returns:
-        projection onto axis shape (m, n)
+        projection onto axis shape (m, qubit_num)
     """
     state_array = np.array(state_array)
     qubit_num = int(np.log2(state_array.shape[1]))

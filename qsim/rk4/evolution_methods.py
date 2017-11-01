@@ -23,6 +23,7 @@ def RK4(x0, hamiltonian, step, time, **kwargs):
     k2 = []
     k3 = []
     k4 = []
+    x0 = np.array(x0)
     time_step_num = int(round(time / step + 1))
     x = np.zeros((x0.shape[0], time_step_num, 2), dtype=np.complex)
     t = np.zeros(time_step_num)

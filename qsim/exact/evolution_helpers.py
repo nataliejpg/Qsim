@@ -13,15 +13,14 @@ def action(evolution_fn, matrix, time_step, time, x0, **kwargs):
         matrix: exact hamiltonian or unitary function
         time_step: step size to do evolution, this only matters for rk4
             evolution as unitary is exact
-        x0 (shape (m, n, 2): initial state(s) where m number of initial_states
-            and n is number of_time steps
+        x0 (shape (m, 2): initial state(s) where m number of initial_states
         **kwargs to be passed to matrix via evolution_fn
 
     Returns:
-        x1: final state
+        x1: final state shape(m, 2)
     """
     t, x = evolution_fn(x0, matrix, time_step, time, **kwargs)
-    return x[-1]
+    return x[:, -1, :]
 
 
 def detuning_sweep(start, stop, step, x0, execution_fn, matrix,
@@ -61,9 +60,10 @@ def detuning_sweep(start, stop, step, x0, execution_fn, matrix,
             x = action_before([x0], detuning=d)[0]
         else:
             x = x0
-        t, x = execution_fn(x, matrix, time_step, time, detuning=d,
+        t, x = execution_fn([x], matrix, time_step, time, detuning=d,
                             **kwargs)
+        x = x[0]
         if action_after is not None:
             x = action_after(x, detuning=d)
-        z[i] = projection(x, axis='Z')
+        z[i] = projection(x, axis='Z')[:, 0]
     return t, detuning_array, (-z + 1) / 2
