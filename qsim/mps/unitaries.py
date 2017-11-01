@@ -1,14 +1,9 @@
 import numpy as np
+from helpers import Sz, I, Splus, Sminus
 
 
 def create_even_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
     mpo = [[]] * qubit_num
-    Sx = 0.5 * np.array([[0, 1], [1, 0]])
-    Sy = 0.5 * np.array([[0, -1j], [1j, 0]])
-    Sz = 0.5 * np.array([[1, 0], [0, -1]])
-    Splus = Sx + 1j * Sy
-    Sminus = Sx - 1j * Sy
-    I = np.eye(2)
 
     M0 = np.zeros((1, 5, 2, 2), dtype=complex)
     M1 = np.zeros((5, 1, 2, 2), dtype=complex)
@@ -40,12 +35,6 @@ def create_even_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
 
 def create_odd_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
     mpo = [[]] * qubit_num
-    Sx = 0.5 * np.array([[0, 1], [1, 0]])
-    Sy = 0.5 * np.array([[0, -1j], [1j, 0]])
-    Sz = 0.5 * np.array([[1, 0], [0, -1]])
-    Splus = Sx + 1j * Sy
-    Sminus = Sx - 1j * Sy
-    I = np.eye(2)
 
     M0 = np.zeros((1, 5, 2, 2), dtype=complex)
     M1 = np.zeros((5, 1, 2, 2), dtype=complex)
@@ -78,13 +67,6 @@ def create_odd_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
 
 def create_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
     mpo = [[]] * qubit_num
-    Sx = 0.5 * np.array([[0, 1], [1, 0]])
-    Sy = 0.5 * np.array([[0, -1j], [1j, 0]])
-    Sz = 0.5 * np.array([[1, 0], [0, -1]])
-    Splus = Sx + 1j * Sy
-    Sminus = Sx - 1j * Sy
-    I = np.eye(2)
-
     M = np.zeros((5, 5, 2, 2), dtype=complex)
 
     M[0, 0, :, :] = I
@@ -111,8 +93,6 @@ def create_heisenberg_unitary_mpo(qubit_num, J, h, Jz, delta_t):
 
 def create_magnetisation_unitary_mpo(qubit_num, qubit_index, delta_t):
     mpo = [[]] * qubit_num
-    Sz = 0.5 * np.array([[1, 0], [0, -1]])
-    I = np.eye(2)
     M = np.zeros((1, 1, 2, 2))
     M[0, 0, :, :] = I
     S = np.zeros((1, 1, 2, 2))

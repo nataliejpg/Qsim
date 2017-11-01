@@ -94,16 +94,3 @@ def evaluate_mps(mps, indices=None, direction='L'):
         for s in mps[1:]:
             state = np.tensordot(state, s, axes=[[-1], [1]])
         return state.flatten()
-
-
-def find_overlap_of_mps(mps1, mps2):
-    if len(mps1) != len(mps2):
-        raise Exception('mps1 length != mps2 length')
-    new_mps = [[]] * len(mps1)
-    for i, s2 in enumerate(mps2):
-        s1 = np.conjugate(np.moveaxis(mps1[i], 0, 2))
-        new_mps[i] = np.moveaxis(np.tensordot(s1, s2, axes=1), 1, 3)
-    state = new_mps[0]
-    for s in new_mps[1:]:
-        state = np.tensordot(state, s, axes=[[-1, -2], [0, 1]])
-    return state[0, 0, 0, 0]

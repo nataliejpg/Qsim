@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib import gridspec
 from matplotlib import cm
-from state_vectors.helpers import projection
+from qsim.exact.measurement import projection
 
 
 def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None):
@@ -384,7 +384,7 @@ def plot_data_sim_stroboscopic(datax, datay, dataz, simx, simy, simz, sr,
     plot2d(x_datapoints, datay, z_datapoints, ax1, cax1,
            cbarlimits=data_cbar_lim, xticklabels=True,
            detuning=True, **kwargs)
-    ax1.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
+    ax1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1e'))
     ax1.set_xlabel('drive duration (s)')
     if 'sim_amp' in kwargs:
         kwargs['amp'] = kwargs.pop('sim_amp')
@@ -396,7 +396,7 @@ def plot_data_sim_stroboscopic(datax, datay, dataz, simx, simy, simz, sr,
     plot2d(x_simpoints, simy, z_simpoints, ax2, cax2,
            cbarlimits=data_cbar_lim, xticklabels=True,
            detuning=True, **kwargs)
-    ax2.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.1e'))
+    ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1e'))
     ax2.set_xlabel('stroboscopic periods')
     if len(x_datapoints) < 14:
         ax1.set_xticks(x_datapoints)
