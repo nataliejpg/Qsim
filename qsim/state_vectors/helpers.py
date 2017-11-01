@@ -12,6 +12,18 @@ def nth_root(number, root):
     return round(np.roots(coeff)[0], 5)
 
 
+def normalise_state_vector(state_vector):
+    state_vector = np.array(state_vector)
+    if len(state_vector.shape) > 2:
+        raise RuntimeError('state_vector provided has shape '
+                           '{}'.format(state_vector.shape))
+    mag = np.linalg.norm(np.array(state_vector))
+    state_vector = state_vector / mag
+    global_phase = np.angle(state_vector[0])
+    state_vector = state_vector * np.exp(-global_phase * 1j)
+    return state_vector
+
+
 def state_vector_index_to_binary(index, qubit_num):
     """
     Function which given the number of qubits and the index in the state
@@ -86,7 +98,7 @@ def state_vectors_one_to_many(state_vector, as_str=False):
         binary = state_vector_index_to_binary(index, qubit_num)
         binary_s += '+ {0:.1f} |{1}>'.format(state_vector[index], binary)
         for j in range(qubit_num):
-            factor = nth_root(np.state_vector[index], qubit_num)
+            factor = nth_root(state_vector[index], qubit_num)
             if binary[j] is '0':
                 s[i, j, 0] = factor
             else:
@@ -113,23 +125,68 @@ def projection(state_array, axis='Z'):
     state_array = np.array(state_array)
     qubit_num = int(np.log2(state_array.shape[1]))
     projections = np.zeros((state_array.shape[0], qubit_num))
-    if axis is 'Z':
+    if axis.upper() == 'Z':
         S = np.array([[1, 0], [0, -1]])
-    elif axis is 'X':
+    elif axis.upper() == 'X':
         S = np.array([[0, 1], [1, 0]])
-    elif axis is 'Y':
+    elif axis.upper() == 'Y':
         S = np.array([[0, -1j], [1j, 0]])
     else:
-        raise Exception('axis nums be X, Y or Z, received {}'.format(axis))
+        raise Exception('axis be X, Y or Z, received {}'.format(axis.upper()))
+    projection_matrices = [[]] * qubit_num
+    identity = np.identity(2)
+    for i in range(qubit_num):
+        mat = 1
+        for j in range(qubit_num):
+            if i == j:
+                mat = np.kron(mat, S)
+            else:
+                mat = np.kron(mat, identity)
+        projection_matrices[i] = mat
     for i, state in enumerate(state_array):
-        superposed_states = state_vectors_one_to_many(state)
-        q_states = np.zeros((qubit_num, 2), dtype=complex)
-        for j, superposed_state in enumerate(superposed_states):
-            for k, q_state in enumerate(superposed_state):
-                q_states[k] = np.sqrt(
-                    q_states[k]**2 + q_state**(2 * qubit_num))
-        q_states_dag = [dagger(st) for st in q_states]
-        for l, q in enumerate(q_states):
-            proj = np.dot(q_states_dag[l], np.dot(S, q))
-            projections[id, l] += np.real(proj)
+        state_dagger = dagger(state)
+        for j in range(qubit_num):
+            projections[i][j] = np.dot(state_dagger, np.dot(projection_matrices[j], state))
+
     return projections
+
+# def projection(state_array, axis='Z'):
+#     """
+#     Function which finds the projections for a set of state vectors onto an
+#     axis
+
+#     Args:
+#         state_array: state vectors array with shape (m, 2**n) where
+#             m is the number of states and n is the number of qubits
+#         axis for the qubits to be projected onto 'X', 'Y' or 'Z' (default Z)
+
+#     Returns:
+#         projection onto axis shape (m, n)
+#     """
+#     state_array = np.array(state_array)
+#     qubit_num = int(np.log2(state_array.shape[1]))
+#     projections = np.zeros((state_array.shape[0], qubit_num))
+#     if axis is 'Z':
+#         S = np.array([[1, 0], [0, -1]])
+#     elif axis is 'X':
+#         S = np.array([[0, 1], [1, 0]])
+#     elif axis is 'Y':
+#         S = np.array([[0, -1j], [1j, 0]])
+#     else:
+#         raise Exception('axis nums be X, Y or Z, received {}'.format(axis))
+#     for i, state in enumerate(state_array):
+#         superposed_states = state_vectors_one_to_many(state)
+#         q_states = np.zeros((qubit_num, 2), dtype=complex)
+#         for j, superposed_state in enumerate(superposed_states):
+#             for k, q_state in enumerate(superposed_state):
+#                 # if q_state[0] > 0:
+#                 # mag = np.sqrt(q_states[k]**2 + q_state**(2 * qubit_num))
+#                 # phase = np.angle(q_states[k])
+#                 q_states[k] = np.sqrt(
+#                     q_states[k]**2 + q_state**(2 * qubit_num))
+#         q_states_dag = [dagger(st) for st in q_states]
+#         for l, q in enumerate(q_states):
+#             proj = np.dot(q_states_dag[l], np.dot(S, q))
+#             print(proj)
+#             projections[i, l] += np.real(proj)
+#     return projections
