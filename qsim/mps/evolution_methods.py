@@ -1,6 +1,6 @@
 import numpy as np
-from qsim.helpers import state_vectors_one_to_many
-from state_vectors import normalise_mps, evaluate_mps
+from qsim.exact.state_vectors import state_vectors_one_to_many
+from qsim.mps.state_vectors import normalise_mps, evaluate_mps
 
 
 def do_mpo_on_mps(mpo, mps):
@@ -23,7 +23,7 @@ def do_mpo_on_mps(mpo, mps):
     return new_mps
 
 
-def do_evolution(mpo_list, mps, step_num, max_d=None):
+def time_evolution(mpo_list, mps, step_num, max_d=None):
     """
     Args:
         list of mpos to apply at each step,
@@ -40,7 +40,8 @@ def do_evolution(mpo_list, mps, step_num, max_d=None):
     for i in range(step_num):
         for mpo in mpo_list:
             mps = do_mpo_on_mps(mpo, mps)
-        mps = normalise_mps(mps, direction='R', max_d=max_d)
-        mps = normalise_mps(mps, direction='L')
+        # mps = normalise_mps(mps, direction='R', max_d=max_d)
+        # mps = normalise_mps(mps, direction='L')
         print('{} state is {}'.format(
             i, state_vectors_one_to_many(evaluate_mps(mps), as_str=True)))
+    return mps

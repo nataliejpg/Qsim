@@ -22,13 +22,13 @@ def create_heisenberg_mpo(qubit_num, J, h):
 
     M[0, 0, :, :] = I
     M[1, 0, :, :] = Splus
-    M[2, 0, :, :] = Sminus
-    M[3, 0, :, :] = Sz
+    M[2, 0, :, :] = Sz
+    M[3, 0, :, :] = Sminus
     M[4, 0, :, :] = h * Sz
 
     M[4, 1, :, :] = J / 2 * Sminus
-    M[4, 2, :, :] = J / 2 * Splus
-    M[4, 3, :, :] = J * Sz
+    M[4, 2, :, :] = J * Sz
+    M[4, 3, :, :] = J / 2 * Splus
     M[4, 4, :, :] = I
 
     for i in range(1, qubit_num - 1):

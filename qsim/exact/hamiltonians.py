@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import jv as bessel
-from qsim.helpers import Sz, Sx
+from qsim.helpers import Sz, Sx, Splus, Sminus, I
 
 
 def create_h1(detuning=0, **kwargs):
@@ -100,3 +100,43 @@ def create_h6(detuning=0, mod_freq=0, amp=0, **kwargs):
     J = bessel(0, amp / omega_f)
     mat = 0.5 * omega_d * omega_f * J * Sz
     return mat
+
+
+def create_heisenberg_h(qubit_num=1, J=0, h=0, **kwargs):
+    H = np.zeros((2**qubit_num, 2**qubit_num), dtype=complex)
+    for i in range(qubit_num):
+        if i < qubit_num - 1:
+            mat = 1
+            for j in range(qubit_num - 1):
+                if j == i:
+                    mat = np.kron(mat, Splus)
+                    mat = np.kron(mat, Sminus)
+                else:
+                    mat = np.kron(mat, I)
+            H += J / 2 * mat
+        if i < qubit_num - 1:
+            mat = 1
+            for j in range(qubit_num - 1):
+                if j == i:
+                    mat = np.kron(mat, Sminus)
+                    mat = np.kron(mat, Splus)
+                else:
+                    mat = np.kron(mat, I)
+            H += J / 2 * mat
+        if i < qubit_num - 1:
+            mat = 1
+            for j in range(qubit_num - 1):
+                if j == i:
+                    mat = np.kron(mat, Sz)
+                    mat = np.kron(mat, Sz)
+                else:
+                    mat = np.kron(mat, I)
+            H += J * mat
+        mat = 1
+        for j in range(qubit_num):
+            if j == i:
+                mat = np.kron(mat, Sz)
+            else:
+                mat = np.kron(mat, I)
+        H += h * mat
+    return H

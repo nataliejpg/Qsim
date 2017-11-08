@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.special import jv as bessel
+from qsim.helpers import dagger
+from qsim.exact.hamiltonians import create_heisenberg_h
 
 
 ####################################################################
@@ -7,76 +9,63 @@ from scipy.special import jv as bessel
 ####################################################################
 
 
-def u_1(t, x, detuning=0):
+def create_u1(t=0, detuning=0, **kwargs):
     """
-    Function which performs a unitay corresponding to an optional Z
+    Function which creates a unitay corresponding to an optional Z
     rotation or the identity. Z rotation frequency modulated by'detuning'.
 
     Args:
-        t (numpy array shape (n,)): time at which to calculate
-        x (numpy array shape (m, 2)): starting state vector
+        t duration of evolution
         detuning (default 0): detuning of drive from resonant freq in Hz,
             corresponds to Z rotation.
 
     Returns:
-        evolved state vector (numpy array shape (m, n, 2))
+        mat (2, 2) corresponding to unitary perfoming this evolution for time t
     """
     omega_d = 2 * np.pi * detuning
-    t = np.array(t)
-    if t.shape == ():
-        t = t.reshape(1,)
-    x = np.rollaxis(np.array(x), 1)
     a0 = np.cos(omega_d * t / 2) - 1j * np.sin(omega_d * t / 2)
     b1 = np.cos(omega_d * t / 2) + 1j * np.sin(omega_d * t / 2)
-    a1 = np.zeros(t.shape[0])
-    b0 = np.zeros(t.shape[0])
-    mat = np.rollaxis(np.array([[a0, a1],
-                                [b0, b1]]), 2)
-    return np.rollaxis(np.dot(mat, x), 2)
+    a1 = 0
+    b0 = 0
+    mat = np.array([[a0, a1], [b0, b1]])
+    return mat
 
 
-def u_3(t, x, amp=1, detuning=0):
+def create_u3(t=0, amp=1, detuning=0, **kwargs):
     """
-    Function which performs a unitay corresponding to an X rotation with
+    Function which creates a unitay corresponding to an X rotation with
     optional z rotation.
     X drive Magnitude V. Off resonance by detuning.
 
     Args:
-        t (numpy array shape (n,)): time at which to calculate
-        x (numpy array shape (m, 2)): starting state vector
+        t duration of evolution
         amp (default 1): magnitude of drive around X
         detuning (default 0): detuning of drive from resonant freq in Hz,
             corresponds to Z rotation.
 
     Returns:
-        evolved state vector (numpy array shape (m, n, 2))
+        mat (2, 2) corresponding to unitary perfoming this evolution for time t
     """
     omega_d = 2 * np.pi * detuning
     alpha = np.sqrt(omega_d**2 + amp**2)
-    t = np.array(t)
-    if t.shape == ():
-        t = t.reshape(1,)
-    x = np.rollaxis(np.array(x), 1)
     a0 = (np.cos(alpha * t / 2) - 1j *
           (omega_d / alpha) * np.sin(alpha * t / 2))
     a1 = -1j * (amp / alpha) * np.sin(alpha * t / 2)
     b0 = - 1j * (amp / alpha) * np.sin(alpha * t / 2)
     b1 = np.cos(alpha * t / 2) + 1j * \
         (omega_d / alpha) * np.sin(alpha * t / 2)
-    mat = np.rollaxis(np.array([[a0, a1],
-                                [b0, b1]]), 2)
-    return np.rollaxis(np.dot(mat, x), 2)
+    mat = np.array([[a0, a1], [b0, b1]])
+    return mat
 
 
-def u_6(t, x, amp=0, detuning=0, mod_freq=0):
+def create_u6(t=0, amp=0, detuning=0, mod_freq=0, **kwargs):
     """
-    Function which performs a unitay corresponding to an X rotation
+    Function which creates a unitay corresponding to an X rotation
     modulated by cosine with frequency mod_freq. Magnitude amp. Off resonance
     by detuning.
 
     Args:
-        t (numpy array shape (n,)): time to be used in forming hamiltonian
-        x (numpy array shape (m, 2)): starting state vector
+        t duration of evolution
         amp (default 1): magnitude of drive around X
         detuning (default 0): detuning of drive from resonant freq in Hz,
             corresponds to Z rotation
@@ -84,12 +73,8 @@ def u_6(t, x, amp=0, detuning=0, mod_freq=0):
             X rotation
 
     Returns:
-        evolved state vector (numpy array shape (m, n, 2))
+        mat (2, 2) corresponding to unitary perfoming this evolution for time t
     """
-    t = np.array(t)
-    if t.shape == ():
-        t = t.reshape(1,)
-    x = np.rollaxis(np.array(x), 1)
     omega_d = 2 * np.pi * detuning
     omega_f = 2 * np.pi * mod_freq
     J = bessel(0, amp / omega_f)
@@ -97,8 +82,17 @@ def u_6(t, x, amp=0, detuning=0, mod_freq=0):
           1j * np.sin(0.5 * omega_d * omega_f * J * t))
     b1 = (np.cos(0.5 * omega_d * omega_f * J * t) +
           1j * np.sin(0.5 * omega_d * omega_f * J * t))
-    a1 = np.zeros(t.shape[0])
-    b0 = np.zeros(t.shape[0])
-    mat = np.rollaxis(np.array([[a0, a1],
-                                [b0, b1]]), 2)
-    return np.rollaxis(np.dot(mat, x), 2)
+    a1 = 0
+    b0 = 0
+    mat = np.array([[a0, a1], [b0, b1]])
+    return mat
+
+
+def create_heisenberg_u(qubit_num=1, t=0, J=0, h=0, **kwargs):
+    H = create_heisenberg_h(qubit_num=qubit_num, J=J, h=h)
+    l, u = np.linalg.eig(H)
+    # print(u.shape, l.shape)
+    # print(np.diag(np.exp(-1j * l * t)).shape)
+    U = np.dot(u, np.dot(np.diag(np.exp(-1j * l * t)), dagger(u)))
+    # print(U.shape)
+    return U

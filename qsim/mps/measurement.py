@@ -1,9 +1,9 @@
 import numpy as np
-from qsim.hamiltonians import create_magnetisation_mpo
-from qsim.evolution_methods import do_mpo_on_mps
+from qsim.mps.hamiltonians import create_magnetisation_mpo
+from qsim.mps.evolution_methods import do_mpo_on_mps
 
 
-def mps_find_overlap(mps1, mps2):
+def find_overlap(mps1, mps2):
     """
     Function which finds overlap of two states in mps form
     Args:
@@ -24,7 +24,7 @@ def mps_find_overlap(mps1, mps2):
     return state[0, 0, 0, 0]
 
 
-def mps_projection(mps_list, axis='Z'):
+def projection(mps_list, axis='Z'):
     """
     Function which finds the projections for a set of mps states onto an
     axis
@@ -44,5 +44,5 @@ def mps_projection(mps_list, axis='Z'):
         for q in range(qubit_num):
             projection_mat = create_magnetisation_mpo(qubit_num, q, axis=axis)
             final_state = do_mpo_on_mps(projection_mat, mps)
-            projections[i, q] = mps_find_overlap(final_state, mps)
+            projections[i, q] = 2 * find_overlap(final_state, mps)
     return projections

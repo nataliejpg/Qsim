@@ -6,7 +6,8 @@ from matplotlib import cm
 from qsim.exact.measurement import projection
 
 
-def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None):
+def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
+                     projection_axes=None, axes_labels=None):
     """
     Function which plots the projection of a state vector onto x, and z axes
 
@@ -17,33 +18,48 @@ def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None):
             l = qubits
 
         x_axis array (optional) (shape (n,))
+        y_axis array (optional) (shape (m,))
+        qubit_index (optional) qubit to plot for, if none specified will plot
+            all qubits
+        projection_axes (optional), which axes to plot along, default [X, Y, Z]
+        axes_labels (optional), what to label the xy axes, default
+            ['time', 'input', 'qubit']
 
     Returns:
         fig with subplots (2d if 2 of m, n and l are > 1, )
     """
+    projection_axes = projection_axes or ['X', 'Y', 'Z']
+    projection_axes = [p.upper() for p in projection_axes]
     state_array = np.array(state_array)
 
     fig = plt.figure()
-    gs = gridspec.GridSpec(3, 2, width_ratios=(9.5, 0.5))
+    gs = gridspec.GridSpec(len(projection_axes), 2, width_ratios=(9.5, 0.5))
 
-    ax1 = plt.subplot(gs[0, 0])
-    ax2 = plt.subplot(gs[1, 0])
-    ax3 = plt.subplot(gs[2, 0])
-    ax1.set_title('x projection')
-    ax2.set_title('y projection')
-    ax3.set_title('z projection')
-    axes_labels = ['time', 'input', 'qubit']
+    for i, p in enumerate(projection_axes):
+        if p.upper() not in ['X', 'Y', 'Z']:
+            raise RuntimeError('projection_axes must be in [X, Y, Z], '
+                               'got {}'.format(projection_axes))
 
+    axes_labels = axes_labels or ['time', 'input', 'qubit']
     if len(state_array.shape) > 2 and 1 in state_array.shape:
         redundant_index = state_array.shape.index(1)
         new_shape = tuple([s for s in state_array.shape if s != 1])
         state_array = state_array.reshape(new_shape)
         if redundant_index == 0:
-            axes_labels.remove('input')
+            try:
+                axes_labels.remove('input')
+            except ValueError:
+                pass
         if redundant_index == 1:
-            axes_labels.remove('time')
+            try:
+                axes_labels.remove('time')
+            except ValueError:
+                pass
     if state_array.shape[-1] == 2 or qubit_index is not None:
-        axes_labels.remove('qubit')
+        try:
+            axes_labels.remove('qubit')
+        except ValueError:
+            pass
         if state_array.shape[-1] == 2 and qubit_index is None:
             qubit_index = 0
 
@@ -56,73 +72,94 @@ def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None):
         raise RuntimeError(
             'why are you here {}'.format(state_array.shape))
 
+    projection_values = [[]] * len(projection_axes)
     if 'qubit' not in axes_labels and len(axes_labels) == 2:  # [time, input]
         if x_axis is None:
             x_axis = np.arange(state_array.shape[1])
         if y_axis is None:
             y_axis = np.arange(state_array.shape[0] + 1)
-        x_projections = np.zeros((state_array.shape[1], state_array.shape[0]))
-        y_projections = np.zeros((state_array.shape[1], state_array.shape[0]))
-        z_projections = np.zeros((state_array.shape[1], state_array.shape[0]))
+        elif len(y_axis) == state_array.shape[0]:
+            y_axis = np.append(y_axis, y_axis[-1] + (y_axis[-1] - y_axis[-2]))
+        for i in range(len(projection_axes)):
+            projection_values[i] = np.zeros(
+                (state_array.shape[1], state_array.shape[0]), dtype=complex)
         for i, state in enumerate(state_array):
-            x_projections[:, i] = projection(state, axis='X')[:, qubit_index]
-            y_projections[:, i] = projection(state, axis='Y')[:, qubit_index]
-            z_projections[:, i] = projection(state, axis='Z')[:, qubit_index]
+            for j, p in enumerate(projection_axes):
+                projection_values[j][:, i] = projection(
+                    state, axis=p)[:, qubit_index]
     elif len(axes_labels) == 2:  # [time, qubit], [input, qubit]
         if x_axis is None:
             x_axis = np.arange(state_array.shape[0])
         if y_axis is None:
             y_axis = np.arange(np.log2(state_array.shape[1]) + 1)
-        x_projections = projection(state_array, axis='X')
-        y_projections = projection(state_array, axis='Y')
-        z_projections = projection(state_array, axis='Z')
+        elif len(y_axis) == state_array.shape[0]:
+            y_axis = np.append(y_axis, y_axis[-1] + (y_axis[-1] - y_axis[-2]))
+        for j, p in enumerate(projection_axes):
+            projection_values[j] = projection(state_array, axis=p)
     elif 'qubit' not in axes_labels:  # [input], [time]
         if x_axis is None:
             x_axis = np.arange(state_array.shape[0])
-        x_projections = projection(state_array, axis='X')[:, qubit_index]
-        y_projections = projection(state_array, axis='Y')[:, qubit_index]
-        z_projections = projection(state_array, axis='Z')[:, qubit_index]
+        for j, p in enumerate(projection_axes):
+            projection_values[j] = projection(
+                state_array, axis=p)[:, qubit_index]
     else:  # [qubit]
         if x_axis is None:
             x_axis = np.arange(np.log2(len(state_array)))
         state_array = [state_array]
-        x_projections = projection(state_array, axis='X')
-        y_projections = projection(state_array, axis='Y')
-        z_projections = projection(state_array, axis='Z')
+        for j, p in enumerate(projection_axes):
+            projection_values[j] = projection(state_array, axis=p)
 
-    if len(x_projections.shape) == 1:
-        plot1d(x_axis, x_projections, ax1)
-        plot1d(x_axis, y_projections, ax2)
-        plot1d(x_axis, z_projections, ax3)
-        ax1.set_ylim([-1.1, 1.1])
-        ax2.set_ylim([-1.1, 1.1])
-        ax3.set_ylim([-1.1, 1.1])
-        ax1.set_xlabel(axes_labels[0])
-        ax2.set_xlabel(axes_labels[0])
-        ax3.set_xlabel(axes_labels[0])
-        ax1.set_ylabel('x_projection')
-        ax2.set_ylabel('y_projection')
-        ax3.set_ylabel('z_projection')
-    else:
-        x_axis, y_axis = np.meshgrid(x_axis, y_axis)
-        cax1 = plt.subplot(gs[0, 1])
-        cax2 = plt.subplot(gs[1, 1])
-        cax3 = plt.subplot(gs[2, 1])
-        plot2d(x_axis, y_axis, x_projections.T, ax1, cax1,
-               cbarlimits='x_projection')
-        plot2d(x_axis, y_axis, y_projections.T, ax2, cax2,
-               cbarlimits='y_projection')
-        plot2d(x_axis, y_axis, z_projections.T, ax3, cax3,
-               cbarlimits='z_projection')
-        ax1.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-        ax2.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-        ax3.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-        ax1.set_xlabel(axes_labels[0])
-        ax2.set_xlabel(axes_labels[0])
-        ax3.set_xlabel(axes_labels[0])
-        ax1.set_ylabel(axes_labels[1])
-        ax2.set_ylabel(axes_labels[1])
-        ax3.set_ylabel(axes_labels[1])
+    for i, p in enumerate(projection_axes):
+        proj = projection_values[i]
+        ax = plt.subplot(gs[i, 0])
+        if len(proj.shape) == 1:
+            plot1d(x_axis, np.real(proj), ax)
+            ax.set_ylim([-1.1, 1.1])
+            ax.set_ylabel('{}_proj'.format(p))
+            ax.set_xlabel(axes_labels[0])
+        else:
+            x_axis_2d, y_axis_2d = np.meshgrid(x_axis, y_axis)
+            cax = plt.subplot(gs[i, 1])
+            plot2d(x_axis_2d, y_axis_2d, np.real(proj.T), ax, cax,
+                   cbarlimits='{}_proj'.format(p))
+            ax.yaxis.set_major_formatter(
+                ticker.ScalarFormatter(useMathText=True))
+            ax.set_xlabel(axes_labels[0])
+            ax.set_ylabel(axes_labels[1])
+        ax.set_title('{} projection'.format(p))
+
+    # if len(projection_values[0].shape) == 1:
+    #     for i, p in enumerate(projection_values):
+    #         plot1d(x_axis, np.real(p), ax_list[i]
+    #     ax1.set_ylim([-1.1, 1.1])
+    #     ax2.set_ylim([-1.1, 1.1])
+    #     ax3.set_ylim([-1.1, 1.1])
+    #     ax1.set_xlabel(axes_labels[0])
+    #     ax2.set_xlabel(axes_labels[0])
+    #     ax3.set_xlabel(axes_labels[0])
+    #     ax1.set_ylabel('x_projection')
+    #     ax2.set_ylabel('y_projection')
+    #     ax3.set_ylabel('z_projection')
+    # else:
+    #     x_axis, y_axis=np.meshgrid(x_axis, y_axis)
+    #     cax1=plt.subplot(gs[0, 1])
+    #     cax2=plt.subplot(gs[1, 1])
+    #     cax3=plt.subplot(gs[2, 1])
+    #     plot2d(x_axis, y_axis, np.real(x_projections.T), ax1, cax1,
+    #            cbarlimits='x_projection')
+    #     plot2d(x_axis, y_axis, np.real(y_projections.T), ax2, cax2,
+    #            cbarlimits='y_projection')
+    #     plot2d(x_axis, y_axis, np.real(z_projections.T), ax3, cax3,
+    #            cbarlimits='z_projection')
+    #     ax1.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+    #     ax2.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+    #     ax3.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
+    #     ax1.set_xlabel(axes_labels[0])
+    #     ax2.set_xlabel(axes_labels[0])
+    #     ax3.set_xlabel(axes_labels[0])
+    #     ax1.set_ylabel(axes_labels[1])
+    #     ax2.set_ylabel(axes_labels[1])
+    #     ax3.set_ylabel(axes_labels[1])
 
     gs.tight_layout(fig, rect=[0, 0, 1, 0.95])
     return fig
