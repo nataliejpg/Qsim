@@ -2,7 +2,7 @@ import numpy as np
 from qsim.helpers import I
 
 
-def create_heisenberg_unitary_mpo(qubit_num, J, h, delta_t, even=True):
+def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, t=0, even=True):
     """
     Creates MPO of Unitary for evolution under
         H = J/2(S+S- + S-S+) + JSzSz + hSz
@@ -11,13 +11,13 @@ def create_heisenberg_unitary_mpo(qubit_num, J, h, delta_t, even=True):
         qubit_num
         J
         h
-        delta_t time step to use
+        t time step to use
         even (default True)
     """
     # make up matrices
-    S_middle = make_S(delta_t, J=J, h=h, end=0)
-    S_first = make_S(delta_t, J=J, h=h, end=-1)
-    S_last = make_S(delta_t, J=J, h=h, end=1)
+    S_middle = make_S(t, J=J, h=h, end=0)
+    S_first = make_S(t, J=J, h=h, end=-1)
+    S_last = make_S(t, J=J, h=h, end=1)
     S_middle_r = np.swapaxes(S_middle.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
     S_first_r = np.swapaxes(S_first.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
     S_last_r = np.swapaxes(S_last.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)

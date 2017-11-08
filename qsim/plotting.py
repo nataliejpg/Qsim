@@ -55,6 +55,11 @@ def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
                 axes_labels.remove('time')
             except ValueError:
                 pass
+    elif len(state_array.shape) == 2:
+        try:
+            axes_labels.remove('input')
+        except ValueError:
+                pass
     if state_array.shape[-1] == 2 or qubit_index is not None:
         try:
             axes_labels.remove('qubit')
