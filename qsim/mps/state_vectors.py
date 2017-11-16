@@ -1,7 +1,39 @@
 import numpy as np
 
 
-def normalise_mps(mps, direction='L', max_d=None):
+def normalise_mps_site(mps, direction, k, max_d=None):
+    if direction is 'L':
+        ld, rd = 2 * mps[k].shape[1], mps[k].shape[2]
+        site = mps[k].reshape((ld, rd))
+        U, s, V = np.linalg.svd(site, full_matrices=False)
+        if max_d is not None:
+            U = U[:, :max_d]
+            s = s[:max_d]
+            V = V[:max_d, :]
+            mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
+        if k < len(mps) - 1:
+            mps[k + 1] = np.dot(np.diag(s), np.dot(V, mps[k + 1]))
+        elif k == len(mps) - 1:
+            print(np.dot(np.diag(s), V))
+    elif direction is 'R':
+        ld, rd = mps[k].shape[1], 2 * mps[k].shape[2]
+        site = np.moveaxis(mps[k], 0, 2).reshape(ld, rd)
+        U, s, V = np.linalg.svd(site, full_matrices=False)
+        if max_d is not None:
+            U = U[:, :max_d]
+            s = s[:max_d]
+            V = V[:max_d, :]
+        reshaped_v = np.moveaxis(
+            V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
+        mps[k] = reshaped_v
+        if k > 0:
+            mps[k - 1] = np.dot(mps[k - 1], np.dot(np.diag(s), V))
+        elif k == 0:
+            print(np.dot(U, np.diag(s)))
+    return mps
+
+
+def normalise_mps(mps, direction='L', max_d=None, k=0):
     qubit_num = len(mps)
     normalised_mps = []
     if direction is 'L':

@@ -46,3 +46,7 @@ def projection(mps_list, axis='Z'):
             final_state = do_mpo_on_mps(projection_mat, mps)
             projections[i, q] = 2 * find_overlap(final_state, mps)
     return projections
+
+
+def find_entropy():
+    pass

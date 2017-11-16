@@ -72,3 +72,38 @@ def create_magnetisation_mpo(qubit_num, qubit_index, axis='Z'):
         else:
             mpo[i] = M
     return mpo
+
+
+def make_generic_2_qubit_hamiltonian(end=0, **kwargs):
+    """
+    end -1: first, 0: middle, 1: last, 10: both
+    """
+    H = np.zeros(16, dtype=complex).reshape(4, 4)
+    if 'XX'in kwargs:
+        H += kwargs['XX'] * np.kron(Sx, Sx)
+    if 'YY'in kwargs:
+        H += kwargs['YY'] * np.kron(Sy, Sy)
+    if 'ZZ' in kwargs:
+        H += kwargs['ZZ'] * np.kron(Sz, Sz)
+    if 'X' in kwargs:
+        H += kwargs['X'] / 2 * np.kron(I, Sx)
+        H += kwargs['X'] / 2 * np.kron(Sx, I)
+        if end in [-1, 10]:
+            H += kwargs['X'] / 2 * np.kron(Sx, I)
+        elif end in [1, 10]:
+            H += kwargs['X'] / 2 * np.kron(I, Sx)
+    if 'Y' in kwargs:
+        H += kwargs['Y'] / 2 * np.kron(I, Sy)
+        H += kwargs['Y'] / 2 * np.kron(Sy, I)
+        if end in [-1, 10]:
+            H += kwargs['Y'] / 2 * np.kron(Sy, I)
+        elif end == 1:
+            H += kwargs['Y'] / 2 * np.kron(I, Sy)
+    if 'Z' in kwargs:
+        H += kwargs['Z'] / 2 * np.kron(I, Sz)
+        H += kwargs['Z'] / 2 * np.kron(Sz, I)
+        if end in [-1, 10]:
+            H += kwargs['Z'] / 2 * np.kron(Sz, I)
+        elif end in [1, 10]:
+            H += kwargs['Z'] / 2 * np.kron(I, Sz)
+    return H
