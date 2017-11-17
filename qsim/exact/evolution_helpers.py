@@ -1,5 +1,5 @@
 import numpy as np
-from .evolution_methods import time_evolution, do_matrix_on_state_vector
+from .methods import time_evolution, do_matrix_on_state_vector
 
 
 def action(create_mat_fn, x0, **kwargs):

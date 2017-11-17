@@ -33,9 +33,9 @@ def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, t=0, even=True):
         even (default True)
     """
     # make up matrices
-    S_middle = make_generic_2_qubit_unitary(t, end=0, XX=J, YY=J, ZZ=J, Z=h)
-    S_first = make_generic_2_qubit_unitary(t, end=-1, XX=J, YY=J, ZZ=J, Z=h)
-    S_last = make_generic_2_qubit_unitary(t, end=1, XX=J, YY=J, ZZ=J, Z=h)
+    S_middle = make_2_qubit_unitary(t, end=0, XX=J, YY=J, ZZ=J, Z=h)
+    S_first = make_2_qubit_unitary(t, end=-1, XX=J, YY=J, ZZ=J, Z=h)
+    S_last = make_2_qubit_unitary(t, end=1, XX=J, YY=J, ZZ=J, Z=h)
     S_middle_r = np.swapaxes(S_middle.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
     S_first_r = np.swapaxes(S_first.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
     S_last_r = np.swapaxes(S_last.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)

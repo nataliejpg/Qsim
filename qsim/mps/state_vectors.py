@@ -1,8 +1,9 @@
 import numpy as np
+import copy
 
 
 def normalise_mps_site(mps, direction, k, max_d=None):
-    if direction is 'L':
+    if direction == 'L':
         ld, rd = 2 * mps[k].shape[1], mps[k].shape[2]
         site = mps[k].reshape((ld, rd))
         U, s, V = np.linalg.svd(site, full_matrices=False)
@@ -10,12 +11,12 @@ def normalise_mps_site(mps, direction, k, max_d=None):
             U = U[:, :max_d]
             s = s[:max_d]
             V = V[:max_d, :]
-            mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
+        mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
         if k < len(mps) - 1:
-            mps[k + 1] = np.dot(np.diag(s), np.dot(V, mps[k + 1]))
-        elif k == len(mps) - 1:
-            print(np.dot(np.diag(s), V))
-    elif direction is 'R':
+            next_state = np.tensordot(np.dot(np.diag(s), V),
+                                      mps[k + 1], axes=(1, 1))
+            mps[k + 1] = np.moveaxis(next_state, 1, 0)
+    elif direction == 'R':
         ld, rd = mps[k].shape[1], 2 * mps[k].shape[2]
         site = np.moveaxis(mps[k], 0, 2).reshape(ld, rd)
         U, s, V = np.linalg.svd(site, full_matrices=False)
@@ -27,48 +28,82 @@ def normalise_mps_site(mps, direction, k, max_d=None):
             V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
         mps[k] = reshaped_v
         if k > 0:
-            mps[k - 1] = np.dot(mps[k - 1], np.dot(np.diag(s), V))
-        elif k == 0:
-            print(np.dot(U, np.diag(s)))
+            mps[k - 1] = np.tensordot(mps[k - 1], np.dot(U, np.diag(s)),
+                                      axes=1)
+    else:
+        raise RuntimeError(
+            'direction must be L or R, recieved: {}'.format(direction))
     return mps
 
 
-def normalise_mps(mps, direction='L', max_d=None, k=0):
+def normalise_mps(mps, direction='L', max_d=None, k=None):
+    norm_mps = copy.deepcopy(mps)
     qubit_num = len(mps)
-    normalised_mps = []
-    if direction is 'L':
-        ld, rd = 2 * mps[0].shape[1], mps[0].shape[2]
-        st = mps[0].reshape((ld, rd))
+    if direction == 'L':
         for i in range(qubit_num):
-            U, s, V = np.linalg.svd(st, full_matrices=False)
-            if max_d is not None:
-                U = U[:, :max_d]
-                s = s[:max_d]
-                V = V[:max_d, :]
-            normalised_mps.append(
-                U.reshape(2, int(U.shape[0] / 2), U.shape[1]))
-            if i is not (qubit_num - 1):
-                n_st = np.moveaxis(mps[i + 1], 0, 2)
-                st = np.tensordot(np.dot(np.diag(s), V), n_st, axes=1)
-                st = np.moveaxis(st, 2, 0)
-                st = st.reshape((2 * st.shape[1], st.shape[2]))
-    elif direction is 'R':
-        ld, rd = mps[-1].shape[1], 2 * mps[-1].shape[2]
-        st = np.moveaxis(mps[-1], 0, 2).reshape(ld, rd)
-        for i in range(qubit_num):
-            U, s, V = np.linalg.svd(st, full_matrices=False)
-            if max_d is not None:
-                U = U[:, :max_d]
-                s = s[:max_d]
-                V = V[:max_d, :]
-            reshaped_v = np.moveaxis(
-                V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
-            normalised_mps.insert(0, reshaped_v)
-            if i is not (qubit_num - 1):
-                st = np.tensordot(mps[-i - 2], np.dot(U, np.diag(s)), axes=1)
-                ld, rd = st.shape[1], st.shape[2]
-                st = np.moveaxis(st, 0, 2).reshape(ld, rd * 2)
-    return normalised_mps
+            norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
+        return norm_mps
+    elif direction == 'R':
+        for i in range(qubit_num - 1, -1, -1):
+            norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
+        return norm_mps
+    elif direction == 'M':
+        for i in range(k):
+            norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
+        for i in range(qubit_num - 1, k + 1, -1):
+            norm_mps = normalise_mps_site(norm_mps, 'R', i, max_d=max_d)
+        reshaped_k = norm_mps[k].reshape(
+            2 * norm_mps[k].shape[1], norm_mps[k].shape[2])
+        ld, rd = norm_mps[k + 1].shape[1], 2 * norm_mps[k + 1].shape[2]
+        reshaped_kp1 = np.moveaxis(norm_mps[k + 1], 0, 2).reshape(ld, rd)
+        C = np.tensordot(reshaped_k, reshaped_kp1, axes=1)
+        U, s, V = np.linalg.svd(C)
+        if max_d is not None:
+            U = U[:, :max_d]
+            s = s[:max_d]
+            V = V[:max_d, :]
+        norm_mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
+        norm_mps[k + 1] = np.moveaxis(V.reshape(V.shape[0],
+                                                int(V.shape[1] / 2), 2), 2, 0)
+        return norm_mps, s
+
+
+# def normalise_mps(mps, direction='L', max_d=None, k=0):
+#     qubit_num = len(mps)
+#     normalised_mps = []
+#     if direction is 'L':
+#         ld, rd = 2 * mps[0].shape[1], mps[0].shape[2]
+#         st = mps[0].reshape((ld, rd))
+#         for i in range(qubit_num):
+#             U, s, V = np.linalg.svd(st, full_matrices=False)
+#             if max_d is not None:
+#                 U = U[:, :max_d]
+#                 s = s[:max_d]
+#                 V = V[:max_d, :]
+#             normalised_mps.append(
+#                 U.reshape(2, int(U.shape[0] / 2)(np.diag(s), V), n_st, axes=1)
+#                 st = np.moveaxis(st, 2, 0)
+#                 st = st.reshape((2 * st.shape[1], st.shape[2]))
+#     elif direction is 'R':, U.shape[1]))
+#             if i is not (qubit_num - 1):
+#                 n_st = np.moveaxis(mps[i + 1], 0, 2)
+#                 st = np.tensordot(np.dot
+#         ld, rd = mps[-1].shape[1], 2 * mps[-1].shape[2]
+#         st = np.moveaxis(mps[-1], 0, 2).reshape(ld, rd)
+#         for i in range(qubit_num):
+#             U, s, V = np.linalg.svd(st, full_matrices=False)
+#             if max_d is not None:
+#                 U = U[:, :max_d]
+#                 s = s[:max_d]
+#                 V = V[:max_d, :]
+#             reshaped_v = np.moveaxis(
+#                 V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
+#             normalised_mps.insert(0, reshaped_v)
+#             if i is not (qubit_num - 1):
+#                 st = np.tensordot(mps[-i - 2], np.dot(U, np.diag(s)), axes=1)
+#                 ld, rd = st.shape[1], st.shape[2]
+#                 st = np.moveaxis(st, 0, 2).reshape(ld, rd * 2)
+#     return normalised_mps
 
 
 def create_specific_mps(state, direction='L', max_d=None):
@@ -93,7 +128,7 @@ def create_specific_mps(state, direction='L', max_d=None):
     return mps
 
 
-def create_random_mps(qubit_num, direction='L', max_d=None):
+def create_random_mps(qubit_num, direction='L', k=None, max_d=None):
     if max_d is None:
         max_d = 2 ** int(np.floor(qubit_num / 2))
     mps = [[]] * qubit_num
@@ -107,7 +142,7 @@ def create_random_mps(qubit_num, direction='L', max_d=None):
         else:
             mps[i] = np.random.rand(2, max_d, max_d) + \
                 np.random.rand(2, max_d, max_d)
-    mps = normalise_mps(mps, direction=direction, max_d=max_d)
+    mps = normalise_mps(mps, direction=direction, k=k, max_d=max_d)
     return mps
 
 

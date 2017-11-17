@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib import gridspec
 from matplotlib import cm
-from qsim.exact.measurement import projection
+from qsim.exact.methods import projection
 
 
 def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
