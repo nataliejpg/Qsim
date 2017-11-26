@@ -47,9 +47,9 @@ def create_magnetisation_mpo(qubit_num, qubit_index, axis='Z'):
     Creates MPO of Hamiltonian for
         H = Sxyz
     Args:
-        qubit_num number of qubits
-        qubit_index to apply magnetisation onto
-        axis of magnetisation ('X', 'Y', 'Z')
+        qubit_num: number of qubits
+        qubit_index: to apply magnetisation onto
+        axis: axis of magnetisation ('X', 'Y', 'Z')
     Returns:
         mpo with shape (qubit_num, b0, b1, 2, 2)
     """
@@ -76,7 +76,12 @@ def create_magnetisation_mpo(qubit_num, qubit_index, axis='Z'):
 
 def make_generic_2_qubit_hamiltonian(end=0, **kwargs):
     """
-    end -1: first, 0: middle, 1: last, 10: both
+    Creates a generic 2 qubit hamiltonian (4x4)
+    Args:
+        end =  -1 (first), 0 (middle), 1 (last), 10 (both)
+        kwargs: parameter list of the XX,YY,ZZ,X,Y,Z coupling strengths
+    Returns:
+        The desired 4x4 Hamiltonian
     """
     H = np.zeros(16, dtype=complex).reshape(4, 4)
     if 'XX'in kwargs:
