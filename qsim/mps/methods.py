@@ -8,33 +8,32 @@ import copy
 
 def do_mpo_on_mps(mpo, mps):
     """
+    Applies the mpo to the mps and returns the new mps without truncation
     Args:
-        mpo with shape (qubit_num, b0, b1, 2, 2)
-        mps with shape (qubit_num, 2, a0, a1)
+        mpo: mpo array of length "qubit_num" with (local) shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) 
+        mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
     Returns:
-        mps with shape (qubit_num, 2, a0*b0, a1*b1)
+        new_mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, b_{k-1}*a_{k-1}, b_{k}*a_{k})
     """
     if len(mpo) != len(mps):
         raise Exception('mpo length != mps length')
     new_mps = [[]] * len(mps)
     for i, o in enumerate(mpo):
+        d = mps[i].shape[0]
         a1, a2 = mps[i].shape[1:]
         b1, b2 = o.shape[:2]
         s = np.tensordot(o, mps[i], axes=1)
         s = np.moveaxis(s, [2, 0, 3, 1, 4], [0, 1, 2, 3, 4])
-        new_mps[i] = s.reshape(2, b1 * a1, b2 * a2)
+        new_mps[i] = s.reshape(d, b1 * a1, b2 * a2)
     return new_mps
 
 
 def projection(mps, axis='Z'):
     """
-    Function which finds the projections for a set of mps states onto an
-    axis
-
+    Function which finds the projections for a set of mps states onto an axis
     Args:
         mps_list: state vectors list with shape (qubit_num, 2, a0, a1)
         axis for the qubits to be projected onto 'X', 'Y' or 'Z' (default Z)
-
     Returns:
         projection onto axis shape (qubit_num)
     """
@@ -51,24 +50,28 @@ def find_overlap(mps1, mps2):
     """
     Function which finds overlap of two states in mps form
     Args:
-        mps1 shape (qubit_num, 2, a0, a1)
-        mps2 shape (qubit_num, 2, a0', a1')
-    Returns
-        overlap
+        mps1: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+        mps2: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+    Returns:
+        norm/overlap
     """
     if len(mps1) != len(mps2):
         raise Exception('mps1 length != mps2 length')
-    new_mps = [[]] * len(mps1)
-    for i, s2 in enumerate(mps2):
-        s1 = np.conjugate(np.moveaxis(mps1[i], 0, 2))
-        new_mps[i] = np.moveaxis(np.tensordot(s1, s2, axes=1), 1, 3)
-    state = new_mps[0]
-    for s in new_mps[1:]:
-        state = np.tensordot(state, s, axes=[[-1, -2], [0, 1]])
-    return state[0, 0, 0, 0]
+    norm = np.ones([1,1])
+    for i in range(len(mps1)):
+        norm = np.tensordot(np.conjugate(mps1[i]),np.tensordot(norm,mps2[i],axes=([1],[1])),axes=([1,0],[0,1]))
+    return norm[0,0]
 
 
 def find_entropy(mps, k=None):
+    """
+    finds the entanglement entropy of the mps when cutting the system to left of site k
+    Args:
+        mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+        k: cutting to the left of site k (default: middle of the system => entanglement entropy)
+    Returns:
+        entanglement entropy
+    """
     if k is None:
         k = int(np.floor(len(mps) / 2))
     mps, sing_vals = normalise_mps(mps, direction='S', k=k)
@@ -79,20 +82,20 @@ def find_entropy(mps, k=None):
 def time_evolution(initial_mps, mpo_method_list, time_step, time, max_d=None,
                    print_out=False, measurements=None, **kwargs):
     """
+    Evolve mps over a certain time ("time") with finite time-step ("time_step") with unitary mpo specified by mpo_method_list 
     Args:
-        list of mps to evolve with dimensions (qubit_num, 2, a0, a1)
-        list of mpo creation methods to create mpos to be applied at each step,
-            each with with shape (qubit_num, b0, b1, 2, 2)
-        time_step size for each method to be applied,
+        initial_mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+        mpo_metod_list: list of mpo methods to create mpo array of length "qubit_num" with (local) shape 
+            (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) to be applied at each time step
+        time_step: size for each method to be applied
         total time
-        max_d (optional) dimension to truncate mps to at each step,
-            if not specified mps will grow with each step
-        print_out (bool default False), print intermediary states
-        measurements (list), what to keep at each time step
+        max_d: (optional) dimension to truncate mps to at each step, if not specified mps will grow with each step
+        print_out: (bool default False), print intermediary states
+        measurements: (list), what to keep at each time step
         **kwargs to be passed to mpo_methods
 
     Returns
-        outputs dict
+        outputs: dict
     """
     meas = defaultdict(lambda: False)
     meas.update(dict.fromkeys(measurements, True))
