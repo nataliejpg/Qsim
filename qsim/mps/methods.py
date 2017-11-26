@@ -70,8 +70,8 @@ def find_overlap(mps1, mps2):
 
 def find_entropy(mps, k=None):
     if k is None:
-        k = int(np.floor(len(mps) / 2 + 1))
-    mps, sing_vals = normalise_mps(mps, direction='M', k=k)
+        k = int(np.floor(len(mps) / 2))
+    mps, sing_vals = normalise_mps(mps, direction='S', k=k)
     entropy = -1 * sum([i**2 * np.log2(i**2) for i in sing_vals if abs(i) > 0])
     return entropy
 

@@ -3,30 +3,38 @@ import copy
 
 
 def normalise_mps_site(mps, direction, k, max_d=None):
+    """
+    Normalises (and possibly truncates) the mps on the given site k
+    Args:
+        mps: unnormalised matrix product state with shape (sigma_{k}, a_{k-1}, a_{k})
+        k: site index
+        direction: direction of normalisation "left" (L) or "right" (R)
+        max_D: maximum bond dimension the mps will have
+    Returns:
+        mps with site k left/right canonically normalised
+    """
     mps = copy.deepcopy(mps)
+    # d[0] = simga_{k} # d[1] = a_{k-1} # d[2] = a_{k}
+    d = mps[k].shape 
     if direction == 'L':
-        ld, rd = 2 * mps[k].shape[1], mps[k].shape[2]
-        site = mps[k].reshape((ld, rd))
+        site = mps[k].reshape(d[0]*d[1], d[2])
         U, s, V = np.linalg.svd(site, full_matrices=False)
         if max_d is not None:
             U = U[:, :max_d]
             s = s[:max_d]
             V = V[:max_d, :]
-        mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
+        mps[k] = U.reshape(d[0], d[1], U.shape[1])
         if k < len(mps) - 1:
-            next_state = np.tensordot(np.dot(np.diag(s), V),
-                                      mps[k + 1], axes=(1, 1))
+            next_state = np.tensordot(np.dot(np.diag(s), V), mps[k + 1], axes=(1, 1))
             mps[k + 1] = np.moveaxis(next_state, 1, 0)
     elif direction == 'R':
-        ld, rd = mps[k].shape[1], 2 * mps[k].shape[2]
-        site = np.moveaxis(mps[k], 0, 2).reshape(ld, rd)
+        site = np.moveaxis(mps[k], 0, 2).reshape(d[1], d[2]*d[0])
         U, s, V = np.linalg.svd(site, full_matrices=False)
         if max_d is not None:
             U = U[:, :max_d]
             s = s[:max_d]
             V = V[:max_d, :]
-        reshaped_v = np.moveaxis(
-            V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
+        reshaped_v = np.moveaxis(V.reshape(V.shape[0], d[2], d[0]), 2, 0)
         mps[k] = reshaped_v
         if k > 0:
             mps[k - 1] = np.tensordot(mps[k - 1], np.dot(U, np.diag(s)),
@@ -38,6 +46,16 @@ def normalise_mps_site(mps, direction, k, max_d=None):
 
 
 def normalise_mps(mps, direction='L', max_d=None, k=None):
+    """
+    normalises the entire mps into left/right canonical form
+    Args:
+        mps: unnormalised matrix product state with shape (sigma_{k}, a_{k-1}, a_{k})
+        direction: choose left ('L'), right ('R'), mixed ('M') normalisation or "Schmidt state" ('S') (default: left)
+        max_D: maximum bond dimension the normalised mps will have
+        k: "hot site" for mixed canonical mps or place the cut of the Schmidt state to the left of site k
+    Returns:
+        normalised_mps
+    """
     norm_mps = copy.deepcopy(mps)
     qubit_num = len(mps)
     if direction == 'L':
@@ -53,73 +71,36 @@ def normalise_mps(mps, direction='L', max_d=None, k=None):
             norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
         for i in range(qubit_num - 1, k, -1):
             norm_mps = normalise_mps_site(norm_mps, 'R', i, max_d=max_d)
-        ld, rd = norm_mps[k].shape[1], 2 * norm_mps[k].shape[2]
-        reshaped_k = np.swapaxes(norm_mps[k], 0, 2).reshape(ld, rd)
+        return norm_mps
+    elif direction == 'S':
+        for i in range(k):
+            norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
+        for i in range(qubit_num - 1, k, -1):
+            norm_mps = normalise_mps_site(norm_mps, 'R', i, max_d=max_d)
+        # d[0] = simga_{k} # d[1] = a_{k-1} # d[2] = a_{k}
+        d = mps[k].shape
+        reshaped_k = np.moveaxis(norm_mps[k], 0, 2).reshape(d[1], d[2]*d[0])
         U, s, V = np.linalg.svd(reshaped_k)
         if max_d is not None:
             U = U[:, :max_d]
             s = s[:max_d]
             V = V[:max_d, :]
         norm_mps[k - 1] = np.tensordot(norm_mps[k - 1], U, axes=1)
-        norm_mps[k] = np.swapaxes(
-            V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
+        norm_mps[k] = np.moveaxis(V.reshape(V.shape[0], d[2], d[0]), 2, 0)
         return norm_mps, s
-        # reshaped_k = norm_mps[k].reshape(
-        #     2 * norm_mps[k].shape[1], norm_mps[k].shape[2])
-        # ld, rd = norm_mps[k + 1].shape[1], 2 * norm_mps[k + 1].shape[2]
-        # reshaped_kp1 = np.moveaxis(norm_mps[k + 1], 0, 2).reshape(ld, rd)
-        # C = np.tensordot(reshaped_k, reshaped_kp1, axes=1)
-        # U, s, V = np.linalg.svd(C)
-        # if max_d is not None:
-        #     U = U[:, :max_d]
-        #     s = s[:max_d]
-        #     V = V[:max_d, :]
-        # norm_mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
-        # norm_mps[k + 1] = np.moveaxis(V.reshape(V.shape[0],
-        #                                         int(V.shape[1] / 2), 2), 2, 0)
-
-
-
-
-# def normalise_mps(mps, direction='L', max_d=None, k=0):
-#     qubit_num = len(mps)
-#     normalised_mps = []
-#     if direction is 'L':
-#         ld, rd = 2 * mps[0].shape[1], mps[0].shape[2]
-#         st = mps[0].reshape((ld, rd))
-#         for i in range(qubit_num):
-#             U, s, V = np.linalg.svd(st, full_matrices=False)
-#             if max_d is not None:
-#                 U = U[:, :max_d]
-#                 s = s[:max_d]
-#                 V = V[:max_d, :]
-#             normalised_mps.append(
-#                 U.reshape(2, int(U.shape[0] / 2)(np.diag(s), V), n_st, axes=1)
-#                 st = np.moveaxis(st, 2, 0)
-#                 st = st.reshape((2 * st.shape[1], st.shape[2]))
-#     elif direction is 'R':, U.shape[1]))
-#             if i is not (qubit_num - 1):
-#                 n_st = np.moveaxis(mps[i + 1], 0, 2)
-#                 st = np.tensordot(np.dot
-#         ld, rd = mps[-1].shape[1], 2 * mps[-1].shape[2]
-#         st = np.moveaxis(mps[-1], 0, 2).reshape(ld, rd)
-#         for i in range(qubit_num):
-#             U, s, V = np.linalg.svd(st, full_matrices=False)
-#             if max_d is not None:
-#                 U = U[:, :max_d]
-#                 s = s[:max_d]
-#                 V = V[:max_d, :]
-#             reshaped_v = np.moveaxis(
-#                 V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
-#             normalised_mps.insert(0, reshaped_v)
-#             if i is not (qubit_num - 1):
-#                 st = np.tensordot(mps[-i - 2], np.dot(U, np.diag(s)), axes=1)
-#                 ld, rd = st.shape[1], st.shape[2]
-#                 st = np.moveaxis(st, 0, 2).reshape(ld, rd * 2)
-#     return normalised_mps
-
-
+      
+        
 def create_specific_mps(state, direction='L', max_d=None):
+    """
+    Creates the specific mps representation for a given input state 
+    Args:
+        state: specific state given as vector on the entire hilbert space of the system
+        direction: choose left ('L'), right ('R'), mixed ('M') normalisation or "Schmidt state" ('S') (default: left)
+        k: "hot site" for mixed canonical mps or place the cut of the Schmidt state to the left of site k
+        max_D: maximum bond dimension the normalised mps will have
+    Returns:
+        mps: specific matrix product state (normalised)
+    """
     mps = []
     qubit_num = int(np.log2(len(state)))
     qubits_pulled_out = 0
@@ -142,6 +123,16 @@ def create_specific_mps(state, direction='L', max_d=None):
 
 
 def create_random_mps(qubit_num, direction='L', k=None, max_d=None):
+    """
+    Creates mps state filled with random (complex) numbers
+    Args:
+        qubit_num: number of qubits
+        direction: choose left ('L'), right ('R'), mixed ('M') normalisation or "Schmidt state" ('S') (default: left)
+        k: "hot site" for mixed canonical mps or place the cut of the Schmidt state to the left of site k
+        max_D: maximum bond dimension the normalised mps will have
+    Returns:
+        mps: random matrix product state (normalised)
+    """
     if max_d is None:
         max_d = 2 ** int(np.floor(qubit_num / 2))
     mps = [[]] * qubit_num
@@ -160,6 +151,15 @@ def create_random_mps(qubit_num, direction='L', k=None, max_d=None):
 
 
 def evaluate_mps(mps, indices=None, direction='L'):
+    """
+    Creates the vector representation for a given mps input state
+    Args:
+        mps: specific state given as an mps
+        indices: 
+        direction: choose left ('L'), right ('R'), mixed ('M') normalisation or "Schmidt state" ('S') (default: left)
+    Returns:
+        state vector on entire hilbert space corresponding to the mps 
+    """
     if indices is not None:
         if len(indices) != len(mps):
             raise Exception('indices length != mps length')
