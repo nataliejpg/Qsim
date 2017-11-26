@@ -155,7 +155,7 @@ def evaluate_mps(mps, indices=None, direction='L'):
     Creates the vector representation for a given mps input state
     Args:
         mps: specific state given as an mps
-        indices: 
+        indices: optional reference state to find amplitude of, length must be same as site number
         direction: choose left ('L'), right ('R'), mixed ('M') normalisation or "Schmidt state" ('S') (default: left)
     Returns:
         state vector on entire hilbert space corresponding to the mps 
