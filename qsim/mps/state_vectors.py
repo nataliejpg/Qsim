@@ -3,6 +3,7 @@ import copy
 
 
 def normalise_mps_site(mps, direction, k, max_d=None):
+    mps = copy.deepcopy(mps)
     if direction == 'L':
         ld, rd = 2 * mps[k].shape[1], mps[k].shape[2]
         site = mps[k].reshape((ld, rd))
@@ -45,27 +46,39 @@ def normalise_mps(mps, direction='L', max_d=None, k=None):
         return norm_mps
     elif direction == 'R':
         for i in range(qubit_num - 1, -1, -1):
-            norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
+            norm_mps = normalise_mps_site(norm_mps, 'R', i, max_d=max_d)
         return norm_mps
     elif direction == 'M':
         for i in range(k):
             norm_mps = normalise_mps_site(norm_mps, 'L', i, max_d=max_d)
-        for i in range(qubit_num - 1, k + 1, -1):
+        for i in range(qubit_num - 1, k, -1):
             norm_mps = normalise_mps_site(norm_mps, 'R', i, max_d=max_d)
-        reshaped_k = norm_mps[k].reshape(
-            2 * norm_mps[k].shape[1], norm_mps[k].shape[2])
-        ld, rd = norm_mps[k + 1].shape[1], 2 * norm_mps[k + 1].shape[2]
-        reshaped_kp1 = np.moveaxis(norm_mps[k + 1], 0, 2).reshape(ld, rd)
-        C = np.tensordot(reshaped_k, reshaped_kp1, axes=1)
-        U, s, V = np.linalg.svd(C)
+        ld, rd = norm_mps[k].shape[1], 2 * norm_mps[k].shape[2]
+        reshaped_k = np.swapaxes(norm_mps[k], 0, 2).reshape(ld, rd)
+        U, s, V = np.linalg.svd(reshaped_k)
         if max_d is not None:
             U = U[:, :max_d]
             s = s[:max_d]
             V = V[:max_d, :]
-        norm_mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
-        norm_mps[k + 1] = np.moveaxis(V.reshape(V.shape[0],
-                                                int(V.shape[1] / 2), 2), 2, 0)
+        norm_mps[k - 1] = np.tensordot(norm_mps[k - 1], U, axes=1)
+        norm_mps[k] = np.swapaxes(
+            V.reshape(V.shape[0], int(V.shape[1] / 2), 2), 2, 0)
         return norm_mps, s
+        # reshaped_k = norm_mps[k].reshape(
+        #     2 * norm_mps[k].shape[1], norm_mps[k].shape[2])
+        # ld, rd = norm_mps[k + 1].shape[1], 2 * norm_mps[k + 1].shape[2]
+        # reshaped_kp1 = np.moveaxis(norm_mps[k + 1], 0, 2).reshape(ld, rd)
+        # C = np.tensordot(reshaped_k, reshaped_kp1, axes=1)
+        # U, s, V = np.linalg.svd(C)
+        # if max_d is not None:
+        #     U = U[:, :max_d]
+        #     s = s[:max_d]
+        #     V = V[:max_d, :]
+        # norm_mps[k] = U.reshape(2, int(U.shape[0] / 2), U.shape[1])
+        # norm_mps[k + 1] = np.moveaxis(V.reshape(V.shape[0],
+        #                                         int(V.shape[1] / 2), 2), 2, 0)
+
+
 
 
 # def normalise_mps(mps, direction='L', max_d=None, k=0):

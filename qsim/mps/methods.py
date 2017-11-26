@@ -3,6 +3,7 @@ from collections import defaultdict
 from qsim.mps.hamiltonians import create_magnetisation_mpo
 from qsim.exact.state_vectors import state_vectors_one_to_many
 from qsim.mps.state_vectors import normalise_mps, evaluate_mps
+import copy
 
 
 def do_mpo_on_mps(mpo, mps):
@@ -25,27 +26,24 @@ def do_mpo_on_mps(mpo, mps):
     return new_mps
 
 
-def projection(mps_list, axis='Z'):
+def projection(mps, axis='Z'):
     """
     Function which finds the projections for a set of mps states onto an
     axis
 
     Args:
-        mps_list: state vectors list with shape (m, qubit_num, 2, a0, a1)
-            where m is the number of states
+        mps_list: state vectors list with shape (qubit_num, 2, a0, a1)
         axis for the qubits to be projected onto 'X', 'Y' or 'Z' (default Z)
 
     Returns:
-        projection onto axis shape (m, qubit_num)
+        projection onto axis shape (qubit_num)
     """
-    mps_array = np.array(mps_list)
-    qubit_num = mps_array.shape[1]
-    projections = np.zeros((mps_array.shape[0], qubit_num))
-    for i, mps in enumerate(mps_array):
-        for q in range(qubit_num):
-            projection_mat = create_magnetisation_mpo(qubit_num, q, axis=axis)
-            final_state = do_mpo_on_mps(projection_mat, mps)
-            projections[i, q] = 2 * find_overlap(final_state, mps)
+    qubit_num = len(mps)
+    projections = np.zeros(qubit_num)
+    for q in range(qubit_num):
+        projection_mat = create_magnetisation_mpo(qubit_num, q, axis=axis)
+        final_state = do_mpo_on_mps(projection_mat, mps)
+        projections[q] = 2 * np.real(find_overlap(final_state, mps))
     return projections
 
 
@@ -72,9 +70,9 @@ def find_overlap(mps1, mps2):
 
 def find_entropy(mps, k=None):
     if k is None:
-        k = int(np.floor(len(mps) / 2 - 1))
+        k = int(np.floor(len(mps) / 2 + 1))
     mps, sing_vals = normalise_mps(mps, direction='M', k=k)
-    entropy = -1 * sum([i * np.log2(i) for i in sing_vals if i > 0])
+    entropy = -1 * sum([i**2 * np.log2(i**2) for i in sing_vals if abs(i) > 0])
     return entropy
 
 
@@ -110,21 +108,36 @@ def time_evolution(initial_mps, mpo_method_list, time_step, time, max_d=None,
     if meas['entanglement_entropy']:
         outputs['entanglement_entropy'] = [[]] * points
         outputs['entanglement_entropy'][0] = find_entropy(initial_mps)
+    if meas['X_projection']:
+        outputs['X'] = [[]] * points
+        outputs['X'][0] = projection(initial_mps, axis='X')
+    if meas['Y']:
+        outputs['Y'] = [[]] * points
+        outputs['Y'][0] = projection(initial_mps, axis='Y')
+    if meas['Z']:
+        outputs['Z'] = [[]] * points
+        outputs['Z'][0] = projection(initial_mps, axis='Z')
     mpo_list = [mpo_method(qubit_num=qubit_num, t=time_step, **kwargs)
                 for mpo_method in mpo_method_list]
     if print_out:
         print('initial_state: ' + state_vectors_one_to_many(
             evaluate_mps(initial_mps), as_str=True))
-    mps = initial_mps
+    mps = copy.deepcopy(initial_mps)
     for i in range(1, points):
         for mpo in mpo_list:
             mps = do_mpo_on_mps(mpo, mps)
-            mps = normalise_mps(mps, direction='R', max_d=max_d)
-            mps = normalise_mps(mps, direction='L')
+            mps = normalise_mps(mps, direction='R')
+            mps = normalise_mps(mps, direction='L', max_d=max_d)
             if meas['intermediary_states']:
                 outputs['intermediary_states'][i] = mps
             if meas['entanglement_entropy']:
                 outputs['entanglement_entropy'][i] = find_entropy(mps)
+            if meas['X']:
+                outputs['X'][i] = projection(mps, axis='X')
+            if meas['Y']:
+                outputs['Y'][i] = projection(mps, axis='Y')
+            if meas['Z']:
+                outputs['Z'][i] = projection(mps, axis='Z')
             if print_out:
                 print('time,  state, {}'.format(
                     time_array[i],

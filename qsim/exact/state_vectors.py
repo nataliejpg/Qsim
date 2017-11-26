@@ -68,10 +68,27 @@ def state_vectors_many_to_one(qubit_states):
     Returns:
         state vector of system (eg [0.7, 0, 0.7, 0])
     """
-    s = np.ones(1)
+    s = 1
     for q in qubit_states:
         s = np.kron(s, q)
     return s
+
+
+def create_random_state(qubit_num):
+    state = np.random.rand(2**qubit_num)
+    state = normalise_state_vector(state)
+    return state
+
+
+def create_random_unentangled_state(qubit_num):
+    state_list = []
+    for q in range(int(qubit_num)):
+        theta = np.random.rand() * np.pi
+        phi = np.random.rand() * 2 * np.pi
+        alpha = np.cos(theta / 2)
+        beta = np.exp(1j * phi) * np.sin(theta / 2)
+        state_list.append(np.array([alpha, beta]))
+    return state_vectors_many_to_one(state_list)
 
 
 def state_vectors_one_to_many(state_vector, as_str=False):

@@ -133,39 +133,6 @@ def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
             ax.set_ylabel(axes_labels[1])
         ax.set_title('{} projection'.format(p))
 
-    # if len(projection_values[0].shape) == 1:
-    #     for i, p in enumerate(projection_values):
-    #         plot1d(x_axis, np.real(p), ax_list[i]
-    #     ax1.set_ylim([-1.1, 1.1])
-    #     ax2.set_ylim([-1.1, 1.1])
-    #     ax3.set_ylim([-1.1, 1.1])
-    #     ax1.set_xlabel(axes_labels[0])
-    #     ax2.set_xlabel(axes_labels[0])
-    #     ax3.set_xlabel(axes_labels[0])
-    #     ax1.set_ylabel('x_projection')
-    #     ax2.set_ylabel('y_projection')
-    #     ax3.set_ylabel('z_projection')
-    # else:
-    #     x_axis, y_axis=np.meshgrid(x_axis, y_axis)
-    #     cax1=plt.subplot(gs[0, 1])
-    #     cax2=plt.subplot(gs[1, 1])
-    #     cax3=plt.subplot(gs[2, 1])
-    #     plot2d(x_axis, y_axis, np.real(x_projections.T), ax1, cax1,
-    #            cbarlimits='x_projection')
-    #     plot2d(x_axis, y_axis, np.real(y_projections.T), ax2, cax2,
-    #            cbarlimits='y_projection')
-    #     plot2d(x_axis, y_axis, np.real(z_projections.T), ax3, cax3,
-    #            cbarlimits='z_projection')
-    #     ax1.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-    #     ax2.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-    #     ax3.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True))
-    #     ax1.set_xlabel(axes_labels[0])
-    #     ax2.set_xlabel(axes_labels[0])
-    #     ax3.set_xlabel(axes_labels[0])
-    #     ax1.set_ylabel(axes_labels[1])
-    #     ax2.set_ylabel(axes_labels[1])
-    #     ax3.set_ylabel(axes_labels[1])
-
     gs.tight_layout(fig, rect=[0, 0, 1, 0.95])
     return fig
 

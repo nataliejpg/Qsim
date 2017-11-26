@@ -102,7 +102,7 @@ def create_h6(detuning=0, mod_freq=0, amp=0, **kwargs):
     return mat
 
 
-def create_heisenberg_h(qubit_num=1, J=0, h=0, **kwargs):
+def create_heisenberg_h(qubit_num=1, J=0, h=0, g=0, **kwargs):
     H = np.zeros((2**qubit_num, 2**qubit_num), dtype=complex)
     for i in range(qubit_num):
         if i < qubit_num - 1:
@@ -139,4 +139,47 @@ def create_heisenberg_h(qubit_num=1, J=0, h=0, **kwargs):
             else:
                 mat = np.kron(mat, I)
         H += h * mat
+        mat = 1
+        for j in range(qubit_num):
+            if j == i:
+                mat = np.kron(mat, Sx)
+            else:
+                mat = np.kron(mat, I)
+        H += g * mat
+    return H
+
+
+def create_Huse_h(qubit_num=1, J=0, h=0, g=0):
+    H = np.zeros((2**qubit_num, 2**qubit_num), dtype=complex)
+    for i in range(qubit_num):
+        if i < qubit_num - 1:
+            mat = 1
+            for j in range(qubit_num - 1):
+                if j == i:
+                    mat = np.kron(mat, Sz)
+                    mat = np.kron(mat, Sz)
+                else:
+                    mat = np.kron(mat, I)
+            H += J * mat
+        mat = 1
+        for j in range(qubit_num):
+            if j == i:
+                mat = np.kron(mat, Sx)
+            else:
+                mat = np.kron(mat, I)
+        H += g * mat
+        mat = 1
+        for j in range(qubit_num):
+            if j == i and j not in [0, qubit_num - 1]:
+                mat = np.kron(mat, Sz)
+            else:
+                mat = np.kron(mat, I)
+        H += h * mat
+        mat = 1
+        for j in range(qubit_num):
+            if j == i and j in [0, qubit_num - 1]:
+                mat = np.kron(mat, Sz)
+            else:
+                mat = np.kron(mat, I)
+        H += (h - J) * mat
     return H

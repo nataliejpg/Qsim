@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.special import jv as bessel
 from qsim.helpers import dagger
-from qsim.exact.hamiltonians import create_heisenberg_h
+from qsim.exact.hamiltonians import create_heisenberg_h, create_Huse_h
 
 
 ####################################################################
@@ -88,11 +88,15 @@ def create_u6(t=0, amp=0, detuning=0, mod_freq=0, **kwargs):
     return mat
 
 
-def create_heisenberg_u(qubit_num=1, t=0, J=0, h=0, **kwargs):
-    H = create_heisenberg_h(qubit_num=qubit_num, J=J, h=h)
+def create_heisenberg_u(qubit_num=1, t=0, J=0, h=0, g=0, **kwargs):
+    H = create_heisenberg_h(qubit_num=qubit_num, J=J, h=h, g=g)
     l, u = np.linalg.eig(H)
-    # print(u.shape, l.shape)
-    # print(np.diag(np.exp(-1j * l * t)).shape)
     U = np.dot(u, np.dot(np.diag(np.exp(-1j * l * t)), dagger(u)))
-    # print(U.shape)
+    return U
+
+
+def create_Huse_u(qubit_num=1, t=0, J=0, h=0, g=0, **kwargs):
+    H = create_Huse_h(qubit_num=qubit_num, J=J, h=h, g=g)
+    l, u = np.linalg.eig(H)
+    U = np.dot(u, np.dot(np.diag(np.exp(-1j * l * t)), dagger(u)))
     return U

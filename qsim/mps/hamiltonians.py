@@ -90,14 +90,14 @@ def make_generic_2_qubit_hamiltonian(end=0, **kwargs):
         H += kwargs['X'] / 2 * np.kron(Sx, I)
         if end in [-1, 10]:
             H += kwargs['X'] / 2 * np.kron(Sx, I)
-        elif end in [1, 10]:
+        if end in [1, 10]:
             H += kwargs['X'] / 2 * np.kron(I, Sx)
     if 'Y' in kwargs:
         H += kwargs['Y'] / 2 * np.kron(I, Sy)
         H += kwargs['Y'] / 2 * np.kron(Sy, I)
         if end in [-1, 10]:
             H += kwargs['Y'] / 2 * np.kron(Sy, I)
-        elif end == 1:
+        if end == 1:
             H += kwargs['Y'] / 2 * np.kron(I, Sy)
     if 'Z' in kwargs:
         H += kwargs['Z'] / 2 * np.kron(I, Sz)
