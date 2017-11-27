@@ -3,16 +3,20 @@ from qsim.helpers import I, Sx, Sy, Sz, dagger
 from .hamiltonians import make_generic_2_qubit_hamiltonian
 
 
-def create_magnetisation_unitary_mpo(qubit_num, qubit_index, delta_t, axis='Z'):
+def create_magnetisation_unitary_mpo(qubit_num, qubit_index, delta_t,
+                                     axis='Z'):
     """
-    Creates the unitary time-evolution mpo for H = S_{qubit_index}^{axis} Hamiltonian
+    Creates the unitary time-evolution mpo for H = S_{qubit_index}^{axis}
+    Hamiltonian
     Args:
         qubit_num: number of qubits in the system
-        qubit_index: site on which the Hamiltonian acts non-trivially 
+        qubit_index: site on which the Hamiltonian acts non-trivially
         delta_t: time-step
-        axis: axis which spin-operator is applied to site qubit_index (default: Sz)
+        axis: axis which spin-operator is applied to site qubit_index
+            (default: Sz)
     Returns:
-        mpo array of length "qubit_num" with (local) shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) 
+        mpo array of length "qubit_num" with (local)
+            shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k})
     """
     identity = np.reshape(1, 1, 2, 2)
     if axis == 'Z':
@@ -29,7 +33,8 @@ def create_magnetisation_unitary_mpo(qubit_num, qubit_index, delta_t, axis='Z'):
     return mpo
 
 
-def make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat, qubit_num=1, even=True):
+def make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat,
+                              qubit_num=1, even=True):
     """
     Creates the unitary time-evolution mpo for odd/even bonds
     Args:
@@ -37,9 +42,11 @@ def make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat, qubit_num=1, even
         middle_mat: 2-site unitary for the middle bonds
         last_mat: 2-site unitary for the last bond
         qubit_num: number of qubits
-        even (bool): specifies whether to generate the even ("True") or odd ("False") mpo
+        even (bool): specifies whether to generate the even ("True") or
+        odd ("False") mpo
     Returns:
-        odd/even time evolution mpo array of length "qubit_num" with (local) shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) 
+        odd/even time evolution mpo array of length "qubit_num" with (local)
+            shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k})
     """
     # make up matrices
     S_middle = middle_mat
@@ -99,7 +106,8 @@ def make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat, qubit_num=1, even
 
 def make_2_qubit_unitary(delta_t, end=0, **kwargs):
     """
-    Creates the 2qubit unitary time-evolution operator for hamiltonian specified in kwargs
+    Creates the 2qubit unitary time-evolution operator for hamiltonian
+    specified in kwargs
     Args:
         delta_t: time-step
         end =  -1 (first), 0 (middle), 1 (last), 10 (both)
@@ -113,9 +121,11 @@ def make_2_qubit_unitary(delta_t, end=0, **kwargs):
     return unitary
 
 
-def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0, even=True):
+def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0,
+                                  even=True):
     """
-    Creates the unitary time-evolution mpo for Heisenberg model H = J/2(S+S- + S-S+) + JSzSz + hSz + gSx
+    Creates the unitary time-evolution mpo for Heisenberg model
+    H = J/2(S+S- + S-S+) + JSzSz + hSz + gSx
     Args:
         qubit_num: number of qubits in the system
         J: isotropic heisenberg coupling
@@ -124,11 +134,14 @@ def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0, even=Tr
         delta_t: time step
         even: even bonds (or odd bonds)
     Returns:
-        mpo array of unitary time evolution on odd/even bonds of length "qubit_num" with (local) shape 
-            (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) for heisenberg model
+        mpo array of unitary time evolution on odd/even bonds of length
+            "qubit_num" with (local) shape (b_{k-1}, b_{k}, sigma_{k}^{'},
+            sigma_{k}) for heisenberg model
     """
-    middle_mat = make_2_qubit_unitary(delta_t, end=0, XX=J, YY=J, ZZ=J, Z=h, X=g)
-    first_mat = make_2_qubit_unitary(delta_t, end=-1, XX=J, YY=J, ZZ=J, Z=h, X=g)
+    middle_mat = make_2_qubit_unitary(
+        delta_t, end=0, XX=J, YY=J, ZZ=J, Z=h, X=g)
+    first_mat = make_2_qubit_unitary(
+        delta_t, end=-1, XX=J, YY=J, ZZ=J, Z=h, X=g)
     last_mat = make_2_qubit_unitary(delta_t, end=1, XX=J, YY=J, ZZ=J, Z=h, X=g)
     return make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat,
                                      qubit_num=qubit_num, even=even)
@@ -176,180 +189,3 @@ def make_end_Huse_2_qubit_unitary(delta_t, end=None, **kwargs):
     D, U = np.linalg.eig(H)
     unitary = np.dot(U, np.dot(np.diag(np.exp(-1j * delta_t * D)), dagger(U)))
     return unitary
-
-
-# def make_Huse_unitary_mpo(qubit_num=1, J=0, h=0, g=0, t=0, even=True):
-#     # make up matrices
-#     S_middle = make_2_qubit_unitary(t, end=0, X=g, Z=h, ZZ=J)
-#     S_first = make_end_Huse_2_qubit_unitary(t, end=-1, J=J, h=J, g=g)
-#     S_last = make_end_Huse_2_qubit_unitary(t, end=1, J=J, h=J, g=g)
-#     S_middle_r = np.swapaxes(S_middle.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-#     S_first_r = np.swapaxes(S_first.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-#     S_last_r = np.swapaxes(S_last.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-
-#     # do svd to get mpos
-#     U, s, V = np.linalg.svd(S_middle_r, full_matrices=False)
-#     a0 = np.dot(U, np.diag(np.sqrt(s)))
-#     a1 = np.dot(np.diag(np.sqrt(s)), V)
-#     M0 = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-#     M1 = a1.reshape(4, 1, 2, 2)
-
-#     U, s, V = np.linalg.svd(S_first_r, full_matrices=False)
-#     a0 = np.dot(U, np.diag(np.sqrt(s)))
-#     a1 = np.dot(np.diag(np.sqrt(s)), V)
-#     M0_first = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-#     M1_first = a1.reshape(4, 1, 2, 2)
-
-#     U, s, V = np.linalg.svd(S_last_r, full_matrices=False)
-#     a0 = np.dot(U, np.diag(np.sqrt(s)))
-#     a1 = np.dot(np.diag(np.sqrt(s)), V)
-#     M0_last = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-#     M1_last = a1.reshape(4, 1, 2, 2)
-
-#     mpo = [[]] * qubit_num
-#     if even:
-#         for i in range(qubit_num):
-#             if i % 2 == 0:
-#                 mpo[i] = M0
-#             else:
-#                 mpo[i] = M1
-#         mpo[0] = M0_first
-#         mpo[1] = M1_first
-#         if qubit_num % 2 == 0:
-#             mpo[-1] = M1_last
-#             mpo[-2] = M0_last
-#         else:
-#             mpo[-1] = I.reshape(1, 1, 2, 2)
-#     else:
-#         for i in range(qubit_num):
-#             if i % 2 != 0:
-#                 mpo[i] = M0
-#             else:
-#                 mpo[i] = M1
-#         mpo[0] = I.reshape(1, 1, 2, 2)
-#         if qubit_num % 2 != 0:
-#             mpo[-1] = M1_last
-#             mpo[-2] = M0_last
-#         else:
-#             mpo[-1] = I.reshape(1, 1, 2, 2)
-#     return mpo
-
-
-# def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, t=0, even=True):
-    """
-    Creates MPO of Unitary for evolution under
-        H = J/2(S+S- + S-S+) + JSzSz + hSz
-    on pairs of nearest neighbours
-    Args:
-        qubit_num
-        J
-        h
-        t time step to use
-        even (default True)
-    """
-    # # make up matrices
-    # S_middle = make_2_qubit_unitary(t, end=0, XX=J, YY=J, ZZ=J, Z=h)
-    # S_first = make_2_qubit_unitary(t, end=-1, XX=J, YY=J, ZZ=J, Z=h)
-    # S_last = make_2_qubit_unitary(t, end=1, XX=J, YY=J, ZZ=J, Z=h)
-    # S_middle_r = np.swapaxes(S_middle.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-    # S_first_r = np.swapaxes(S_first.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-    # S_last_r = np.swapaxes(S_last.reshape(2, 2, 2, 2), 1, 2).reshape(4, 4)
-
-    # # do svd to get mpos
-    # U, s, V = np.linalg.svd(S_middle_r, full_matrices=False)
-    # a0 = np.dot(U, np.diag(np.sqrt(s)))
-    # a1 = np.dot(np.diag(np.sqrt(s)), V)
-    # M0 = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-    # M1 = a1.reshape(4, 1, 2, 2)
-
-    # U, s, V = np.linalg.svd(S_first_r, full_matrices=False)
-    # a0 = np.dot(U, np.diag(np.sqrt(s)))
-    # a1 = np.dot(np.diag(np.sqrt(s)), V)
-    # M0_first = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-    # M1_first = a1.reshape(4, 1, 2, 2)
-
-    # U, s, V = np.linalg.svd(S_last_r, full_matrices=False)
-    # a0 = np.dot(U, np.diag(np.sqrt(s)))
-    # a1 = np.dot(np.diag(np.sqrt(s)), V)
-    # M0_last = np.swapaxes(a0, 0, 1).reshape(1, 4, 2, 2)
-    # M1_last = a1.reshape(4, 1, 2, 2)
-
-    # mpo = [[]] * qubit_num
-    # if even:
-    #     for i in range(qubit_num):
-    #         if i % 2 == 0:
-    #             mpo[i] = M0
-    #         else:
-    #             mpo[i] = M1
-    #     mpo[0] = M0_first
-    #     mpo[1] = M1_first
-    #     if qubit_num % 2 == 0:
-    #         mpo[-1] = M1_last
-    #         mpo[-2] = M0_last
-    #     else:
-    #         mpo[-1] = I.reshape(1, 1, 2, 2)
-    # else:
-    #     for i in range(qubit_num):
-    #         if i % 2 != 0:
-    #             mpo[i] = M0
-    #         else:
-    #             mpo[i] = M1
-    #     mpo[0] = I.reshape(1, 1, 2, 2)
-    #     if qubit_num % 2 != 0:
-    #         mpo[-1] = M1_last
-    #         mpo[-2] = M0_last
-    #     else:
-    #         mpo[-1] = I.reshape(1, 1, 2, 2)
-    # return mpo
-
-
-# def make_S(delta_t, J=0, h=0, end=0):
-#     """
-#     Makes 2 * 2 matrix for unitary evolution under Heisenberg
-#         H = J/2(S+S- + S-S+) + JSzSz + hSz
-#     Args:
-#         delta_t
-#         J
-#         j
-#         end [-1, 0, 1] corresponds to first, middle, last (default 0)
-#     """
-#     if end == -1:
-#         alpha = np.sqrt((h / 2) ** 2 + J**2)
-#         beta = delta_t * alpha / 2
-#         S = np.exp(1j * delta_t * J / 4) * np.array([
-#             [np.exp(-1j * delta_t * (2 * J + 3 * h) / 4), 0, 0, 0],
-#             [0, np.cos(beta) - 1j * h * np.sin(beta) / (2 * alpha), -
-#              1j * J * np.sin(beta) / alpha, 0],
-#             [0, - 1j * J * np.sin(beta) / alpha, np.cos(beta) +
-#              1j * h * np.sin(beta) / (2 * alpha), 0],
-#             [0, 0, 0, np.exp(-1j * delta_t * (2 * J - 3 * h) / 4)]])
-#     elif end == 0:
-#         Sp_Sm = np.array([
-#             [1, 0, 0, 0],
-#             [0, np.cos(J * delta_t / 2), -1j * np.sin(J * delta_t / 2), 0],
-#             [0, -1j * np.sin(J * delta_t / 2), np.cos(J * delta_t / 2), 0],
-#             [0, 0, 0, 1]])
-#         Sz_Sz = np.exp(1j * J * delta_t / 4) * np.array([
-#             [np.exp(-1j * J * delta_t / 2), 0, 0, 0],
-#             [0, 1, 0, 0],
-#             [0, 0, 1, 0],
-#             [0, 0, 0, np.exp(-1j * J * delta_t / 2)]])
-#         Sz = np.array([
-#             [np.exp(-1j * h * delta_t / 2), 0, 0, 0],
-#             [0, 1, 0, 0],
-#             [0, 0, 1, 0],
-#             [0, 0, 0, np.exp(1j * h * delta_t / 2)]])
-#         S = np.dot(Sp_Sm, np.dot(Sz_Sz, Sz))
-#     elif end == 1:
-#         alpha = np.sqrt((h / 2) ** 2 + J**2)
-#         beta = delta_t * alpha / 2
-#         S = np.exp(1j * delta_t * J / 4) * np.array([
-#             [np.exp(-1j * delta_t * (2 * J + 3 * h) / 4), 0, 0, 0],
-#             [0, np.cos(beta) + 1j * h * np.sin(beta) / (2 * alpha), -
-#              1j * J * np.sin(beta) / alpha, 0],
-#             [0, - 1j * J * np.sin(beta) / alpha, np.cos(beta) -
-#              1j * h * np.sin(beta) / (2 * alpha), 0],
-#             [0, 0, 0, np.exp(-1j * delta_t * (2 * J - 3 * h) / 4)]])
-#     else:
-#         raise RuntimeError("you're an idiot")
-#     return S

@@ -10,10 +10,13 @@ def do_mpo_on_mps(mpo, mps):
     """
     Applies the mpo to the mps and returns the new mps without truncation
     Args:
-        mpo: mpo array of length "qubit_num" with (local) shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) 
-        mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+        mpo: mpo array of length "qubit_num" with (local)
+            shape (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k})
+        mps: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, a_{k-1}, a_{k})
     Returns:
-        new_mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, b_{k-1}*a_{k-1}, b_{k}*a_{k})
+        new_mps: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, b_{k-1}*a_{k-1}, b_{k}*a_{k})
     """
     if len(mpo) != len(mps):
         raise Exception('mpo length != mps length')
@@ -50,25 +53,31 @@ def find_overlap(mps1, mps2):
     """
     Function which finds overlap of two states in mps form
     Args:
-        mps1: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
-        mps2: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
+        mps1: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, a_{k-1}, a_{k})
+        mps2: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, a_{k-1}, a_{k})
     Returns:
         norm/overlap
     """
     if len(mps1) != len(mps2):
         raise Exception('mps1 length != mps2 length')
-    norm = np.ones([1,1])
+    norm = np.ones([1, 1])
     for i in range(len(mps1)):
-        norm = np.tensordot(np.conjugate(mps1[i]),np.tensordot(norm,mps2[i],axes=([1],[1])),axes=([1,0],[0,1]))
-    return norm[0,0]
+        norm = np.tensordot(np.conjugate(mps1[i]), np.tensordot(
+            norm, mps2[i], axes=([1], [1])), axes=([1, 0], [0, 1]))
+    return norm[0, 0]
 
 
 def find_entropy(mps, k=None):
     """
-    finds the entanglement entropy of the mps when cutting the system to left of site k
+    Finds the entanglement entropy of the mps when cutting the system
+    to left of site k
     Args:
-        mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
-        k: cutting to the left of site k (default: middle of the system => entanglement entropy)
+        mps: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, a_{k-1}, a_{k})
+        k: cutting to the left of site k
+            (default: middle of the system => entanglement entropy)
     Returns:
         entanglement entropy
     """
@@ -82,14 +91,19 @@ def find_entropy(mps, k=None):
 def time_evolution(initial_mps, mpo_method_list, time_step, time, max_d=None,
                    print_out=False, measurements=None, **kwargs):
     """
-    Evolve mps over a certain time ("time") with finite time-step ("time_step") with unitary mpo specified by mpo_method_list 
+    Evolve mps over a certain time ("time") with finite time-step ("time_step")
+    with unitary mpo specified by mpo_method_list
     Args:
-        initial_mps: mps array of length "qubit_num" with (local) shape (sigma_{k}, a_{k-1}, a_{k})
-        mpo_metod_list: list of mpo methods to create mpo array of length "qubit_num" with (local) shape 
-            (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k}) to be applied at each time step
+        initial_mps: mps array of length "qubit_num" with (local)
+            shape (sigma_{k}, a_{k-1}, a_{k})
+        mpo_metod_list: list of mpo methods to create mpo array of length
+            "qubit_num" with (local) shape
+            (b_{k-1}, b_{k}, sigma_{k}^{'}, sigma_{k})
+            to be applied at each time step
         time_step: size for each method to be applied
         total time
-        max_d: (optional) dimension to truncate mps to at each step, if not specified mps will grow with each step
+        max_d: (optional) dimension to truncate mps to at each step,
+            if not specified mps will grow with each step
         print_out: (bool default False), print intermediary states
         measurements: (list), what to keep at each time step
         **kwargs to be passed to mpo_methods
