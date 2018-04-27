@@ -102,51 +102,45 @@ def create_h6(detuning=0, mod_freq=0, amp=0, **kwargs):
     return mat
 
 
-def create_heisenberg_h(qubit_num=1, J=0, h=0, g=0, **kwargs):
+def create_heisenberg_h(qubit_num=1, J=0, Jz=None, Jxy=None, h=0, g=0,
+                        periodic=False, **kwargs):
+    Jz = Jz or J
+    Jxy = Jxy or J
     H = np.zeros((2**qubit_num, 2**qubit_num), dtype=complex)
     for i in range(qubit_num):
-        if i < qubit_num - 1:
-            mat = 1
-            for j in range(qubit_num - 1):
-                if j == i:
-                    mat = np.kron(mat, Splus)
-                    mat = np.kron(mat, Sminus)
-                else:
-                    mat = np.kron(mat, I)
-            H += J / 2 * mat
-        if i < qubit_num - 1:
-            mat = 1
-            for j in range(qubit_num - 1):
-                if j == i:
-                    mat = np.kron(mat, Sminus)
-                    mat = np.kron(mat, Splus)
-                else:
-                    mat = np.kron(mat, I)
-            H += J / 2 * mat
-        if i < qubit_num - 1:
-            mat = 1
-            for j in range(qubit_num - 1):
-                if j == i:
-                    mat = np.kron(mat, Sz)
-                    mat = np.kron(mat, Sz)
-                else:
-                    mat = np.kron(mat, I)
-            H += J * mat
-        mat = 1
-        for j in range(qubit_num):
+        sp_sm_mat = 1
+        sm_sp_mat = 1
+        sz_sz_mat = 1
+        sz_mat = 1
+        sx_mat = 1
+        for j in range(qubit_num - 1):
             if j == i:
-                mat = np.kron(mat, Sz)
-            else:
-                mat = np.kron(mat, I)
-        H += h * mat
-        mat = 1
-        for j in range(qubit_num):
-            if j == i:
-                mat = np.kron(mat, Sx)
-            else:
-                mat = np.kron(mat, I)
-        H += g * mat
-    return H
+                sp_sm_mat = np.kron(sp_sm_mat, Splus)
+                sp_sm_mat = np.kron(sp_sm_mat, Sminus)
+                sm_sp_mat = np.kron(sm_sp_mat, Sminus)
+                sm_sp_mat = np.kron(sm_sp_mat, Splus)
+                sz_sz_mat = np.kron(sz_sz_mat, Sz)
+                sz_sz_mat = np.kron(sz_sz_mat, Sz)
+                sz_mat = np.kron(sz_mat, Sz)
+                sx_mat = np.kron(sx_mat, Sx)
+            elif i != qubit_num - 1 or (periodic and j > 0):
+                sp_sm_mat = np.kron(sp_sm_mat, I)
+                sm_sp_mat = np.kron(sm_sp_mat, I)
+                sz_sz_mat = np.kron(sz_sz_mat, I)
+                sz_mat = np.kron(sz_mat, I)
+                sx_mat = np.kron(sx_mat, I)
+        if periodic and i == qubit_num - 1:
+            sp_sm_mat = np.kron(sp_sm_mat, Splus)
+            sp_sm_mat = np.kron(Sminus, sp_sm_mat)
+            sm_sp_mat = np.kron(sm_sp_mat, Sminus)
+            sm_sp_mat = np.kron(Splus, sm_sp_mat)
+            sz_sz_mat = np.kron(sz_sz_mat, Sz)
+            sz_sz_mat = np.kron(Sz, sz_sz_mat)
+        sz_mat = np.kron(sz_mat, Sz)
+        sx_mat = np.kron(sx_mat, Sx)
+        H += Jz * sz_sz_mat + Jxy * (sp_sm_mat + sm_sp_mat) + h * sz_mat + g * sx_mat
+        return H
+
 
 
 def create_Huse_h(qubit_num=1, J=0, h=0, g=0):

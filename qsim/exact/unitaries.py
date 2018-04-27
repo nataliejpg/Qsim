@@ -95,6 +95,13 @@ def create_heisenberg_u(qubit_num=1, t=0, J=0, h=0, g=0, **kwargs):
     return U
 
 
+def create_ising_u(qubit_num=1, t=0, Jz=0, h=0, g=0, **kwargs)
+    H = create_heisenberg_h(qubit_num=qubit_num, Jz=J, h=h, g=g)
+    l, u = np.linalg.eig(H)
+    U = np.dot(u, np.dot(np.diag(np.exp(-1j * l * t)), dagger(u)))
+    return U
+
+
 def create_Huse_u(qubit_num=1, t=0, J=0, h=0, g=0, **kwargs):
     H = create_Huse_h(qubit_num=qubit_num, J=J, h=h, g=g)
     l, u = np.linalg.eig(H)
