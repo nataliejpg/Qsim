@@ -7,7 +7,7 @@ from qsim.exact.methods import projection
 
 
 def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
-                     projection_axes=None, axes_labels=None):
+                     projection_axes=None, axes_labels=None, title=None):
     """
     Function which plots the projection of a state vector onto x, and z axes
 
@@ -131,7 +131,7 @@ def plot_projections(state_array, x_axis=None, y_axis=None, qubit_index=None,
                 ticker.ScalarFormatter(useMathText=True))
             ax.set_xlabel(axes_labels[0])
             ax.set_ylabel(axes_labels[1])
-        ax.set_title('{} projection'.format(p))
+        ax.set_title((title or '') + '{} projection'.format(p))
 
     gs.tight_layout(fig, rect=[0, 0, 1, 0.95])
     return fig
