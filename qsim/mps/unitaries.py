@@ -121,7 +121,7 @@ def make_2_qubit_unitary(delta_t, end=0, **kwargs):
     return unitary
 
 
-def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0,
+def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, t=0,
                                   even=True):
     """
     Creates the unitary time-evolution mpo for Heisenberg model
@@ -131,7 +131,7 @@ def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0,
         J: isotropic heisenberg coupling
         h: longitudinal (on-site) field
         g: transverse (on-site) field
-        delta_t: time step
+        t: time step
         even: even bonds (or odd bonds)
     Returns:
         mpo array of unitary time evolution on odd/even bonds of length
@@ -139,16 +139,16 @@ def create_heisenberg_unitary_mpo(qubit_num=1, J=0, h=0, g=0, delta_t=0,
             sigma_{k}) for heisenberg model
     """
     middle_mat = make_2_qubit_unitary(
-        delta_t, end=0, XX=J, YY=J, ZZ=J, Z=h, X=g)
+        t, end=0, XX=J, YY=J, ZZ=J, Z=h, X=g)
     first_mat = make_2_qubit_unitary(
-        delta_t, end=-1, XX=J, YY=J, ZZ=J, Z=h, X=g)
-    last_mat = make_2_qubit_unitary(delta_t, end=1, XX=J, YY=J, ZZ=J, Z=h, X=g)
+        t, end=-1, XX=J, YY=J, ZZ=J, Z=h, X=g)
+    last_mat = make_2_qubit_unitary(t, end=1, XX=J, YY=J, ZZ=J, Z=h, X=g)
     return make_odd_even_unitary_mpo(first_mat, middle_mat, last_mat,
                                      qubit_num=qubit_num, even=even)
 
 
-def create_Huse_unitary_mpo_odd_even(qubit_num=1, J=0, h=0, g=0, t=0,
-                                     even=True):
+def create_Huse_unitary_mpo(qubit_num=1, J=0, h=0, g=0, t=0,
+                            even=True):
     middle_mat = make_2_qubit_unitary(t, end=0, X=g, Z=h, ZZ=J)
     first_mat = make_end_Huse_2_qubit_unitary(t, end=-1, J=J, h=J, g=g)
     last_mat = make_end_Huse_2_qubit_unitary(t, end=1, J=J, h=J, g=g)
