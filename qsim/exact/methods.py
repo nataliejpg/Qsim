@@ -1,6 +1,7 @@
 import numpy as np
 from qsim.helpers import make_higher_d_mat, dagger, Sx, Sy, Sz, I
-from .state_vectors import state_vectors_one_to_many
+from .state_vectors import state_vectors_one_to_many, normalise_state_vector
+from decimal import Decimal
 
 
 def find_overlap(state_vector1, state_vector2):
@@ -72,7 +73,7 @@ def do_matrix_on_state_vector(matrix, vector, axes=None):
 
 
 def time_evolution(x0, create_mat_fn, time_step, time,
-                   print_out=True, keep_intermediary=True, **kwargs):
+                   print_out=False, keep_intermediary=True, **kwargs):
     """
     Unitary evolution with initial state x0, total time and time_step
     time defined.
@@ -96,26 +97,38 @@ def time_evolution(x0, create_mat_fn, time_step, time,
     """
     x0 = np.array(x0)
     qubit_num = int(np.log2(x0.shape[1]))
+    if float(Decimal(str(time)) % Decimal(str(time_step))) != 0:
+        raise RuntimeError('Could not find int number of points to fill time')
     points = round(time / time_step + 1)
-    time_array = np.linspace(0, time, points)
-    inputs = np.arange(x0.shape[0])
+    time_array = np.linspace(0, time, points, endpoint=True)
+    inputs = x0.shape[0]
     if keep_intermediary:
         outputs = np.zeros((x0.shape[0], points, 2**qubit_num), dtype=complex)
     else:
         outputs = np.zeros((x0.shape[0], 2**qubit_num), dtype=complex)
+
+    if print_out:
+        for i in range(inputs):
+            print('input {}, initial_state: {}'.format(
+                i, x0[i]))
     if keep_intermediary:
         higher_d_mat = make_higher_d_mat(
             create_mat_fn, ['t'], [time_array], qubit_num=qubit_num, **kwargs)
-        for i in inputs:
+        for i in range(inputs):
             a = do_matrix_on_state_vector(higher_d_mat, x0[i])
+            # a = np.array([normalise_state_vector(j) for j in a])
             outputs[i] = a
+            if print_out:
+                print('input {}, time {}, state, {}'.format(
+                      i, time_array[-1], a[-1]))
         return time_array, outputs
     else:
         mat = create_mat_fn(t=time, qubit_num=qubit_num, **kwargs)
-        for i in inputs:
+        for i in range(inputs):
             a = do_matrix_on_state_vector(mat, x0[i])
+            # outputs[i] = normalise_state_vector(a)
             outputs[i] = a
-        return outputs
+        return None, outputs
 
 
 def time_evolution_trotter(x0, unitary_method_list, time_step, time,
@@ -124,12 +137,13 @@ def time_evolution_trotter(x0, unitary_method_list, time_step, time,
     Args:
         x0 (numpy array shape (m, 2**qubit_num)): initial state
         unitary_method_list: list of functions to create unitaries to
-            apply at each step, each should have shape (2)
+            apply at each step
         time_step (float): time step size
         time (float): total time for evolution
         print_out (bool default False), print intermediary states
         keep_intermediary (bool default True) keep intermediary states and
             return them
+        periodic
         **kwargs to be passed to mpo_methods
 
     Returns
@@ -141,40 +155,55 @@ def time_evolution_trotter(x0, unitary_method_list, time_step, time,
     """
     x0 = np.array(x0)
     qubit_num = int(np.log2(x0.shape[1]))
-    points = round(time / time_step + 1)
-    time_array = np.linspace(0, time, points)
-    inputs = np.arange(x0.shape[0])
+    if float(Decimal(str(time)) % Decimal(str(time_step))) != 0:
+        raise RuntimeError('Could not find int number of points to fill time')
+    points = int(round(time / time_step + 1))
+    time_array = np.linspace(0, time, points, endpoint=True)
+    inputs = x0.shape[0]
     if keep_intermediary:
         outputs = np.zeros((x0.shape[0], points, 2**qubit_num), dtype=complex)
+        # outputs[:, 0, :] = np.array([normalise_state_vector(x) for x in x0])
         outputs[:, 0, :] = x0
     else:
         outputs = np.zeros((x0.shape[0], 2**qubit_num), dtype=complex)
-        outputs = x0
+        # outputs[:] = np.array([normalise_state_vector(x) for x in x0])
+        outputs[:] = x0
+    # unitary_list = []
+    # for i, unitary_method in unitary_method_list:
+    #     u = unitary_method(t=time_step, qubit_num=2, periodic=False, **kwargs)
+    #     mat = np.eye(2**(qubit_num))
+    #     for j in range(qubit_num - 1):
+    #         mat = np.dot(mat, kron(np.eye(2**(j)),
+    #                                np.kron(u, np.eye(2**(qubit_num - j - 2)))))
+    #     if periodic:
+    #         end_mat =
+    #         mat = np.dot(mat, end_mats[i])
+    #     unitary_list.append(mat)
     unitary_list = [u_method(t=time_step, qubit_num=qubit_num, **kwargs)
                     for u_method in unitary_method_list]
     if print_out:
-        for i in inputs:
-            print('input {}, initial_state: '.format(
-                i, state_vectors_one_to_many(x0[i], as_str=True)))
+        for i in range(inputs):
+            print('input {}, initial_state: {}'.format(
+                i, x0[i]))
 
     for j in range(1, points):
-        for i in inputs:
+        for i in range(inputs):
             if keep_intermediary:
                 state = outputs[i, j - 1]
             else:
                 state = outputs[i]
             for unitary in unitary_list:
-                state = do_matrix_on_state_vector(
-                    unitary, state)
+                state = do_matrix_on_state_vector(unitary, state)
             if keep_intermediary:
+                # outputs[i, j] = normalise_state_vector(state)
                 outputs[i, j] = state
             else:
+                # outputs[i] = normalise_state_vector(state)
                 outputs[i] = state
             if print_out:
-                print('input {}, step {}, time,  state, {}'.format(
-                    i, j + 1, time_array[j],
-                    state_vectors_one_to_many(state, as_str=True)))
+                print('input {}, step {}, time {}, state, {}'.format(
+                    i, j + 1, time_array[j], state))
     if keep_intermediary:
         return time_array, outputs
     else:
-        return outputs
+        return None, outputs
