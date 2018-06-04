@@ -11,13 +11,17 @@ def normalise_state_vector(state_vector):
     Returns:
         normalised state vector 2**L long
     """
-    state_vector = np.array(state_vector)
-    if len(state_vector.shape) > 2:
+    state_vector = np.array(state_vector, dtype=complex)
+    if len(state_vector.shape) > 1:
         raise RuntimeError('state_vector provided has shape '
                            '{}'.format(state_vector.shape))
-    mag = np.linalg.norm(np.array(state_vector))
+    mag = np.linalg.norm(state_vector)
     state_vector = state_vector / mag
-    global_phase = np.angle(state_vector[0])
+    return strip_global_phase(state_vector)
+
+
+def strip_global_phase(state_vector):
+    global_phase = np.angle(state_vector[0]) if np.imag(state_vector[0]) > 0 else 0
     state_vector = state_vector * np.exp(-global_phase * 1j)
     return state_vector
 
